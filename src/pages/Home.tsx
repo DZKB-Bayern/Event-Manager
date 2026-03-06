@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { format } from 'date-fns';
 import { de } from 'date-fns/locale';
@@ -35,6 +36,17 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
+  
+  // Check for embed parameter to adjust layout
+  const location = useLocation();
+  const searchParams = new URLSearchParams(location.search);
+  const embedParam = searchParams.get('embed');
+  const isEmbed = 
+    embedParam === 'true' || 
+    embedParam === '1' || 
+    embedParam === '' ||
+    location.hash.includes('embed=true') ||
+    location.hash.includes('embed=1');
 
   useEffect(() => {
     const fetchEvents = async () => {
@@ -65,7 +77,7 @@ export default function Home() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    <div className={`max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 ${isEmbed ? 'py-4' : 'py-12'}`}>
       <div className="flex flex-col md:flex-row justify-between items-end mb-12 gap-4">
         <div className="text-center md:text-left w-full md:w-auto">
           <h1 className="text-4xl font-extrabold text-gray-900 sm:text-5xl sm:tracking-tight lg:text-6xl">
