@@ -1,3 +1,4 @@
+import React, { useRef } from 'react';
 import { X, MapPin, Clock } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { format } from 'date-fns';
@@ -24,6 +25,8 @@ interface EventDetailsModalProps {
 }
 
 export default function EventDetailsModal({ isOpen, onClose, event }: EventDetailsModalProps) {
+  const isMouseDownOnBackdrop = useRef(false);
+
   if (!event) return null;
 
   const date = new Date(event.start_time);
@@ -34,18 +37,35 @@ export default function EventDetailsModal({ isOpen, onClose, event }: EventDetai
   const startTime = format(date, 'HH:mm');
   const endTime = format(endDate, 'HH:mm');
 
+  const handleBackdropMouseDown = (e: React.MouseEvent) => {
+    if (e.target === e.currentTarget) {
+      isMouseDownOnBackdrop.current = true;
+    } else {
+      isMouseDownOnBackdrop.current = false;
+    }
+  };
+
+  const handleBackdropMouseUp = (e: React.MouseEvent) => {
+    if (isMouseDownOnBackdrop.current && e.target === e.currentTarget) {
+      onClose();
+    }
+    isMouseDownOnBackdrop.current = false;
+  };
+
   return (
     <AnimatePresence>
       {isOpen && (
         <div 
           className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto overflow-x-hidden bg-black/50 backdrop-blur-sm p-4 md:inset-0 md:h-full"
-          onClick={onClose}
+          onMouseDown={handleBackdropMouseDown}
+          onMouseUp={handleBackdropMouseUp}
         >
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
             className="relative w-full max-w-2xl my-8"
+            onMouseDown={(e) => e.stopPropagation()}
             onClick={(e) => e.stopPropagation()}
           >
             <div className="relative bg-white rounded-xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
@@ -115,14 +135,16 @@ export default function EventDetailsModal({ isOpen, onClose, event }: EventDetai
                     href={event.button_link}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="block w-full btn-cta text-center py-3 text-lg shadow-md hover:shadow-lg transform hover:-translate-y-0.5 rounded-lg font-semibold text-white bg-primary hover:bg-primary/90 transition-all"
+                    className="block w-full btn-cta text-center py-3 text-lg shadow-md hover:shadow-lg transform hover:-translate-y-0.5 rounded-lg font-semibold text-white transition-all hover:opacity-90"
+                    style={{ backgroundColor: event.color || '#0D89F9' }}
                     onClick={(e) => e.stopPropagation()}
                   >
                     {event.button_text || 'JETZT ANMELDEN'}
                   </a>
                 ) : (
                   <button 
-                    className="block w-full btn-cta text-center py-3 text-lg shadow-md hover:shadow-lg transform hover:-translate-y-0.5 rounded-lg font-semibold text-white bg-primary hover:bg-primary/90 transition-all"
+                    className="block w-full btn-cta text-center py-3 text-lg shadow-md hover:shadow-lg transform hover:-translate-y-0.5 rounded-lg font-semibold text-white transition-all hover:opacity-90"
+                    style={{ backgroundColor: event.color || '#0D89F9' }}
                     onClick={(e) => {
                       e.stopPropagation();
                       // Handle internal navigation or logic if needed

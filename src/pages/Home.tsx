@@ -204,14 +204,16 @@ export default function Home() {
                         href={event.button_link}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="btn-cta text-xs sm:text-sm px-3 py-2 sm:px-4 sm:py-2 whitespace-nowrap shadow-md"
+                        className="btn-cta text-xs sm:text-sm px-3 py-2 sm:px-4 sm:py-2 whitespace-nowrap shadow-md hover:opacity-90"
+                        style={{ backgroundColor: EVENT_COLOR }}
                         onClick={(e) => e.stopPropagation()}
                       >
                         {event.button_text || 'ANMELDEN'}
                       </a>
                     ) : (
                       <button 
-                        className="btn-cta text-xs sm:text-sm px-3 py-2 sm:px-4 sm:py-2 whitespace-nowrap shadow-md"
+                        className="btn-cta text-xs sm:text-sm px-3 py-2 sm:px-4 sm:py-2 whitespace-nowrap shadow-md hover:opacity-90"
+                        style={{ backgroundColor: EVENT_COLOR }}
                         onClick={(e) => {
                           e.stopPropagation();
                           setSelectedEvent(displayEvent as any);
@@ -280,14 +282,16 @@ export default function Home() {
                       href={event.button_link}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="block w-full btn-cta text-center uppercase tracking-wide text-xs py-3"
+                      className="block w-full btn-cta text-center uppercase tracking-wide text-xs py-3 hover:opacity-90"
+                      style={{ backgroundColor: EVENT_COLOR }}
                       onClick={(e) => e.stopPropagation()}
                     >
                       {event.button_text || 'JETZT ANMELDEN'}
                     </a>
                   ) : (
                     <button 
-                      className="w-full btn-cta text-center uppercase tracking-wide text-xs py-3"
+                      className="w-full btn-cta text-center uppercase tracking-wide text-xs py-3 hover:opacity-90"
+                      style={{ backgroundColor: EVENT_COLOR }}
                       onClick={(e) => {
                         e.stopPropagation();
                         setSelectedEvent(displayEvent as any);
