@@ -132,15 +132,18 @@ export default function EventDetailsModal({ isOpen, onClose, event }: EventDetai
                         href={event.button_link}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="block w-full text-white font-bold py-3 px-4 rounded-lg transition-all text-center shadow-md hover:shadow-lg transform hover:-translate-y-0.5 hover:brightness-90"
-                        style={{ backgroundColor: bgColor }}
+                        className="block w-full btn-cta text-center py-3 text-lg shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
+                        onClick={(e) => e.stopPropagation()}
                       >
                         {event.button_text || 'JETZT ANMELDEN'}
                       </a>
                     ) : (
                       <button 
-                        className="block w-full text-white font-bold py-3 px-4 rounded-lg transition-all text-center shadow-md hover:shadow-lg transform hover:-translate-y-0.5 hover:brightness-90"
-                        style={{ backgroundColor: bgColor }}
+                        className="block w-full btn-cta text-center py-3 text-lg shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          // Handle internal navigation or logic if needed
+                        }}
                       >
                         {event.button_text || 'JETZT ANMELDEN'}
                       </button>

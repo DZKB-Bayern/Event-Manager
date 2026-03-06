@@ -22,19 +22,19 @@ interface Event {
 }
 
 const CARD_STYLES = [
-  { bg: 'bg-[#5D5333]', text: 'text-white', muted: 'text-white/80' }, // Olive
-  { bg: 'bg-[#98D8A8]', text: 'text-gray-900', muted: 'text-gray-700' }, // Light Green
-  { bg: 'bg-[#3b82f6]', text: 'text-white', muted: 'text-white/80' }, // Blue
-  { bg: 'bg-[#1e3a8a]', text: 'text-white', muted: 'text-white/80' }, // Dark Blue
-  { bg: 'bg-[#7f1d1d]', text: 'text-white', muted: 'text-white/80' }, // Red
-  { bg: 'bg-[#064e3b]', text: 'text-white', muted: 'text-white/80' }, // Dark Green
+  { bg: 'bg-[#5D5333]', hex: '#5D5333', text: 'text-white', muted: 'text-white/80' }, // Olive
+  { bg: 'bg-[#98D8A8]', hex: '#98D8A8', text: 'text-gray-900', muted: 'text-gray-700' }, // Light Green
+  { bg: 'bg-[#3b82f6]', hex: '#3b82f6', text: 'text-white', muted: 'text-white/80' }, // Blue
+  { bg: 'bg-[#1e3a8a]', hex: '#1e3a8a', text: 'text-white', muted: 'text-white/80' }, // Dark Blue
+  { bg: 'bg-[#7f1d1d]', hex: '#7f1d1d', text: 'text-white', muted: 'text-white/80' }, // Red
+  { bg: 'bg-[#064e3b]', hex: '#064e3b', text: 'text-white', muted: 'text-white/80' }, // Dark Green
 ];
 
 export default function Home() {
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
 
   useEffect(() => {
     const fetchEvents = async () => {
@@ -69,10 +69,10 @@ export default function Home() {
       <div className="flex flex-col md:flex-row justify-between items-end mb-12 gap-4">
         <div className="text-center md:text-left w-full md:w-auto">
           <h1 className="text-4xl font-extrabold text-gray-900 sm:text-5xl sm:tracking-tight lg:text-6xl">
-            Kommende Veranstaltungen
+            Unsere Events
           </h1>
           <p className="mt-5 max-w-xl text-xl text-gray-500 mx-auto md:mx-0">
-            Entdecken Sie Veranstaltungen unserer Community-Mitglieder.
+            Zukünftige Veranstaltungen unserer Mitglieder.
           </p>
         </div>
 
@@ -94,7 +94,7 @@ export default function Home() {
         </div>
       </div>
 
-      <div className={viewMode === 'grid' ? "grid gap-6 sm:grid-cols-2 lg:grid-cols-4" : "space-y-4"}>
+      <div className={viewMode === 'grid' ? "grid gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" : "space-y-6"}>
         {events.map((event, index) => {
           // Determine style based on event.color or fallback to index
           let style = CARD_STYLES[index % CARD_STYLES.length];
@@ -102,13 +102,28 @@ export default function Home() {
           
           if (event.color) {
             // Check if it matches one of our presets to get the text color
-            // Or just default to white text unless it's the light green one
-            const isLightGreen = event.color.toLowerCase() === '#98d8a8';
-            style = {
-              bg: '', // We'll use inline style for bg
-              text: isLightGreen ? 'text-gray-900' : 'text-white',
-              muted: isLightGreen ? 'text-gray-700' : 'text-white/80'
-            };
+            const matchedStyle = CARD_STYLES.find(s => s.hex.toLowerCase() === event.color?.toLowerCase());
+            
+            if (matchedStyle) {
+              style = matchedStyle;
+            } else {
+              // Fallback logic for custom colors (simple brightness check)
+              // Convert hex to RGB to calculate brightness
+              const hex = event.color.replace('#', '');
+              const r = parseInt(hex.substr(0, 2), 16);
+              const g = parseInt(hex.substr(2, 2), 16);
+              const b = parseInt(hex.substr(4, 2), 16);
+              const brightness = ((r * 299) + (g * 587) + (b * 114)) / 1000;
+              
+              const isLight = brightness > 155; // Threshold for text color
+              
+              style = {
+                bg: '', 
+                hex: event.color,
+                text: isLight ? 'text-gray-900' : 'text-white',
+                muted: isLight ? 'text-gray-700' : 'text-white/80'
+              };
+            }
             customStyle = { backgroundColor: event.color };
           }
 
@@ -134,7 +149,7 @@ export default function Home() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.1 }}
-                className="bg-white rounded-xl shadow-md overflow-hidden flex flex-col md:flex-row hover:shadow-xl transition-shadow duration-300 cursor-pointer group"
+                className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex flex-col md:flex-row hover:shadow-md transition-shadow duration-300 cursor-pointer group"
                 onClick={() => setSelectedEvent(displayEvent as any)}
               >
                 {/* Date Column */}
@@ -184,14 +199,14 @@ export default function Home() {
                       href={event.button_link}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-block w-fit bg-[#22c55e] hover:bg-[#16a34a] text-white font-bold py-2 px-6 rounded transition-colors uppercase tracking-wide text-sm shadow-sm self-end"
+                      className="btn-cta self-end"
                       onClick={(e) => e.stopPropagation()}
                     >
                       {event.button_text || 'JETZT ANMELDEN'}
                     </a>
                   ) : (
                     <button 
-                      className="inline-block w-fit bg-[#22c55e] hover:bg-[#16a34a] text-white font-bold py-2 px-6 rounded transition-colors uppercase tracking-wide text-sm shadow-sm self-end"
+                      className="btn-cta self-end"
                       onClick={(e) => {
                         e.stopPropagation();
                         setSelectedEvent(displayEvent as any);
@@ -211,69 +226,70 @@ export default function Home() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.1 }}
-              className={`rounded-xl shadow-lg overflow-hidden flex flex-col h-full ${style.bg} ${style.text} cursor-pointer hover:shadow-xl transition-shadow duration-300`}
+              className={`rounded-xl shadow-lg overflow-hidden flex flex-col h-full ${style.bg} ${style.text} cursor-pointer hover:shadow-xl hover:-translate-y-1 transition-all duration-300`}
               style={customStyle}
               onClick={() => setSelectedEvent(displayEvent as any)}
             >
-              <div className="relative h-64 shrink-0">
+              <div className="relative h-56 shrink-0">
                 <img 
                   src={event.image_url || `https://picsum.photos/seed/${event.id}/800/600`} 
                   alt={event.title} 
                   className="w-full h-full object-cover" 
                 />
                 <div 
-                  className={`absolute top-0 left-6 p-3 text-center min-w-[80px] rounded-b-lg shadow-md ${style.bg} ${style.text}`}
-                  style={customStyle}
+                  className={`absolute top-0 left-6 p-3 text-center min-w-[80px] rounded-b-lg shadow-md backdrop-blur-sm bg-white/90 text-gray-900`}
                 >
-                  <div className="text-sm font-bold uppercase tracking-wider mb-1">{month}</div>
-                  <div className="text-4xl font-bold leading-none mb-1">{day}</div>
-                  <div className="text-sm font-bold uppercase tracking-wider">{weekday}</div>
+                  <div className="text-xs font-bold uppercase tracking-wider mb-1 text-primary">{month}</div>
+                  <div className="text-3xl font-extrabold leading-none mb-1">{day}</div>
+                  <div className="text-xs font-bold uppercase tracking-wider text-gray-500">{weekday}</div>
                 </div>
               </div>
 
               <div className="p-6 flex flex-col flex-1">
-                <h3 className="text-2xl font-bold mb-4 line-clamp-2 min-h-[4rem]">
+                <h3 className={`text-xl font-bold mb-4 line-clamp-2 min-h-[3.5rem] ${style.text}`}>
                   {event.title}
                 </h3>
                 
-                <div className={`space-y-3 mb-6 text-sm font-medium ${style.muted}`}>
-                  <div className="flex items-center">
-                    <Clock className="h-5 w-5 mr-3 shrink-0" />
-                    <span>{startTime} - {endTime}</span>
-                  </div>
-                  {event.location && (
+                  <div className={`space-y-3 mb-6 text-sm font-medium ${style.muted}`}>
                     <div className="flex items-center">
-                      <MapPin className="h-5 w-5 mr-3 shrink-0" />
-                      <span className="truncate">{event.location}</span>
+                      <Clock className="h-4 w-4 mr-3 shrink-0 opacity-80" />
+                      <span>{startTime} - {endTime}</span>
                     </div>
-                  )}
-                </div>
+                    {event.location && (
+                      <div className="flex items-center">
+                        <MapPin className="h-4 w-4 mr-3 shrink-0 opacity-80" />
+                        <span className="truncate">{event.location}</span>
+                      </div>
+                    )}
+                  </div>
 
-                <p className={`text-sm leading-relaxed line-clamp-5 mb-6 ${style.muted}`}>
+                <p className={`text-sm leading-relaxed line-clamp-4 mb-6 ${style.muted}`}>
                   {event.description}
                 </p>
 
-                {event.button_link ? (
-                  <a 
-                    href={event.button_link}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="block w-full bg-[#22c55e] hover:bg-[#16a34a] text-white font-bold py-3 px-4 rounded transition-colors mt-auto uppercase tracking-wide text-sm shadow-sm text-center"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    {event.button_text || 'JETZT ANMELDEN'}
-                  </a>
-                ) : (
-                  <button 
-                    className="w-full bg-[#22c55e] hover:bg-[#16a34a] text-white font-bold py-3 px-4 rounded transition-colors mt-auto uppercase tracking-wide text-sm shadow-sm"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setSelectedEvent(displayEvent as any);
-                    }}
-                  >
-                    {event.button_text || 'JETZT ANMELDEN'}
-                  </button>
-                )}
+                <div className="mt-auto pt-4">
+                  {event.button_link ? (
+                    <a 
+                      href={event.button_link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block w-full btn-cta text-center uppercase tracking-wide text-xs py-3"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      {event.button_text || 'JETZT ANMELDEN'}
+                    </a>
+                  ) : (
+                    <button 
+                      className="w-full btn-cta text-center uppercase tracking-wide text-xs py-3"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedEvent(displayEvent as any);
+                      }}
+                    >
+                      {event.button_text || 'JETZT ANMELDEN'}
+                    </button>
+                  )}
+                </div>
               </div>
             </motion.div>
           );

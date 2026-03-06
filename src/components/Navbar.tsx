@@ -12,21 +12,24 @@ export default function Navbar() {
   };
 
   return (
-    <nav className="bg-white border-b border-gray-200 sticky top-0 z-50">
+    <nav className="bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between h-16">
+        <div className="flex justify-between h-20">
           <div className="flex">
             <Link to="/" className="flex-shrink-0 flex items-center group">
               <img 
                 src="https://dzkb.bayern/wp-content/uploads/2026/02/App-Icon-DZKB.png" 
                 alt="DZKB Logo" 
-                className="h-10 w-auto transition-transform group-hover:scale-105"
+                className="h-12 w-auto transition-transform group-hover:scale-105"
                 referrerPolicy="no-referrer"
               />
-              <span className="ml-3 text-xl font-bold text-primary group-hover:text-primary-hover transition-colors">DZKB Event Manager</span>
+              <div className="ml-3 flex flex-col justify-center">
+                <span className="text-xl font-bold text-primary leading-none group-hover:text-primary-hover transition-colors">DZKB</span>
+                <span className="text-xs font-medium text-gray-500 tracking-wider uppercase">Event Manager</span>
+              </div>
             </Link>
           </div>
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-6">
             {user ? (
               <div className="flex items-center space-x-4">
                 <Link
@@ -65,7 +68,7 @@ export default function Navbar() {
                 </button>
               </div>
             ) : (
-              <div className="flex items-center space-x-3">
+              <div className="flex items-center space-x-4">
                 <Link
                   to="/login"
                   className="text-gray-700 hover:text-primary px-4 py-2 rounded-md text-sm font-medium transition-colors"
@@ -74,7 +77,7 @@ export default function Navbar() {
                 </Link>
                 <Link
                   to="/register"
-                  className="bg-primary text-white hover:bg-primary-hover px-4 py-2 rounded-md text-sm font-medium shadow-sm hover:shadow transition-all transform hover:-translate-y-0.5"
+                  className="btn-primary shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all"
                 >
                   Registrieren
                 </Link>
