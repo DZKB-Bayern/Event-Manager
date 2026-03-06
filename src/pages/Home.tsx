@@ -76,29 +76,38 @@ export default function Home() {
     );
   }
 
+  // Fixed color for all events
+  const EVENT_COLOR = '#0D89F9';
+  const EVENT_STYLE = {
+    bg: 'bg-[#0D89F9]',
+    hex: '#0D89F9',
+    text: 'text-white',
+    muted: 'text-white/80'
+  };
+
   return (
     <div className={`max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 ${isEmbed ? 'py-4' : 'py-12'}`}>
       <div className="flex flex-col md:flex-row justify-between items-end mb-12 gap-4">
         <div className="text-center md:text-left w-full md:w-auto">
-          <h1 className="text-4xl font-extrabold text-white sm:text-5xl sm:tracking-tight lg:text-6xl">
+          <h1 className="text-4xl font-light sm:text-5xl sm:tracking-tight lg:text-6xl" style={{ color: '#0C71C3' }}>
             Unsere Events
           </h1>
-          <p className="mt-5 max-w-xl text-xl text-blue-50 mx-auto md:mx-0">
+          <p className="mt-5 max-w-xl text-xl mx-auto md:mx-0" style={{ color: '#0C71C3' }}>
             Zukünftige Veranstaltungen unserer Mitglieder.
           </p>
         </div>
 
-        <div className="bg-white/10 backdrop-blur-sm p-1 rounded-lg flex items-center shrink-0 self-center md:self-end border border-white/20">
+        <div className="bg-gray-100 p-1 rounded-lg flex items-center shrink-0 self-center md:self-end">
           <button
             onClick={() => setViewMode('grid')}
-            className={`p-2 rounded-md transition-all ${viewMode === 'grid' ? 'bg-white shadow-sm text-gray-900' : 'text-white hover:bg-white/10'}`}
+            className={`p-2 rounded-md transition-all ${viewMode === 'grid' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-900'}`}
             title="Kartenansicht"
           >
             <LayoutGrid className="w-5 h-5" />
           </button>
           <button
             onClick={() => setViewMode('list')}
-            className={`p-2 rounded-md transition-all ${viewMode === 'list' ? 'bg-white shadow-sm text-gray-900' : 'text-white hover:bg-white/10'}`}
+            className={`p-2 rounded-md transition-all ${viewMode === 'list' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-900'}`}
             title="Listenansicht"
           >
             <List className="w-5 h-5" />
@@ -108,52 +117,10 @@ export default function Home() {
 
       <div className={viewMode === 'grid' ? "grid gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" : "space-y-6"}>
         {events.map((event, index) => {
-          // Determine style based on event.color or fallback to index
-          let style = CARD_STYLES[index % CARD_STYLES.length];
-          let customStyle = {};
-          let isLight = false; // Default to dark background (white text)
+          // Use fixed style for all events
+          const style = EVENT_STYLE;
+          const customStyle = { backgroundColor: EVENT_COLOR };
           
-          if (event.color) {
-            // Check if it matches one of our presets to get the text color
-            const matchedStyle = CARD_STYLES.find(s => s.hex.toLowerCase() === event.color?.toLowerCase());
-            
-            if (matchedStyle) {
-              style = matchedStyle;
-              // Determine brightness for preset styles (most are dark backgrounds)
-              // Olive #5D5333 (Dark), Light Green #98D8A8 (Light), Blue #3b82f6 (Dark-ish), Dark Blue #1e3a8a (Dark), Red #7f1d1d (Dark), Dark Green #064e3b (Dark)
-              isLight = matchedStyle.hex === '#98D8A8'; 
-            } else {
-              // Fallback logic for custom colors (simple brightness check)
-              // Convert hex to RGB to calculate brightness
-              const hex = event.color.replace('#', '');
-              const r = parseInt(hex.substr(0, 2), 16);
-              const g = parseInt(hex.substr(2, 2), 16);
-              const b = parseInt(hex.substr(4, 2), 16);
-              const brightness = ((r * 299) + (g * 587) + (b * 114)) / 1000;
-              
-              isLight = brightness > 155; // Threshold for text color
-              
-              style = {
-                bg: '', 
-                hex: event.color,
-                text: isLight ? 'text-gray-900' : 'text-white',
-                muted: isLight ? 'text-gray-700' : 'text-white/80'
-              };
-            }
-            customStyle = { backgroundColor: event.color };
-          } else {
-             // Default styles logic (mostly dark backgrounds except maybe light green if it was default)
-             // Our default styles list:
-             // 0: Olive (Dark)
-             // 1: Light Green (Light)
-             // 2: Blue (Dark)
-             // 3: Dark Blue (Dark)
-             // 4: Red (Dark)
-             // 5: Dark Green (Dark)
-             const styleIndex = index % CARD_STYLES.length;
-             isLight = styleIndex === 1; // Only the light green one is light
-          }
-
           const date = new Date(event.start_time);
           const month = format(date, 'MMM', { locale: de }).toUpperCase().replace('.', '');
           const day = format(date, 'd');
@@ -166,13 +133,13 @@ export default function Home() {
           // Map profile username to creator_name for display
           const displayEvent = {
             ...event,
-            creator_name: event.profiles?.username || 'Unbekannt'
+            creator_name: event.profiles?.username || 'Unbekannt',
+            color: EVENT_COLOR // Override color for modal
           };
 
           if (viewMode === 'list') {
-            // Calculate badge background based on brightness
             const badgeClass = 'bg-gray-100 text-gray-700';
-            const borderColor = event.color || style.hex;
+            const borderColor = EVENT_COLOR;
 
             return (
               <motion.div
@@ -186,11 +153,11 @@ export default function Home() {
               >
                 {/* Date Column - Colored background */}
                 <div 
-                  className={`w-20 sm:w-24 shrink-0 flex flex-col justify-center items-center text-center p-2 ${style.bg} ${style.text}`}
+                  className={`w-20 sm:w-24 shrink-0 flex flex-col justify-center items-center text-center p-2 text-white`}
                   style={customStyle}
                 >
                   <div className="text-xs font-bold uppercase tracking-wider mb-0.5 opacity-80">{month}</div>
-                  <div className="text-2xl sm:text-3xl font-extrabold leading-none mb-0.5">{day}</div>
+                  <div className="text-2xl sm:text-3xl font-bold leading-none mb-0.5">{day}</div>
                   <div className="text-xs font-bold uppercase tracking-wider opacity-80">{weekday}</div>
                 </div>
 
@@ -207,7 +174,7 @@ export default function Home() {
 
                   {/* Text Content */}
                   <div className="flex-1 min-w-0 flex flex-col justify-center gap-2">
-                    <h3 className="text-lg sm:text-xl font-bold leading-tight truncate pr-2 text-gray-900">
+                    <h3 className="text-lg sm:text-xl font-medium leading-tight truncate pr-2 text-gray-900">
                       {event.title}
                     </h3>
                     
@@ -266,7 +233,7 @@ export default function Home() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.1 }}
               className={`rounded-xl shadow-lg overflow-hidden flex flex-col h-full bg-white border-2 cursor-pointer hover:shadow-xl hover:-translate-y-1 transition-all duration-300`}
-              style={{ borderColor: event.color || style.hex }}
+              style={{ borderColor: EVENT_COLOR }}
               onClick={() => setSelectedEvent(displayEvent as any)}
             >
               <div className="relative h-56 shrink-0">
@@ -276,17 +243,17 @@ export default function Home() {
                   className="w-full h-full object-cover" 
                 />
                 <div 
-                  className={`absolute top-0 left-6 p-3 text-center min-w-[80px] rounded-b-lg shadow-md backdrop-blur-sm ${style.bg} ${style.text}`}
+                  className={`absolute top-0 left-6 p-3 text-center min-w-[80px] rounded-b-lg shadow-md backdrop-blur-sm text-white`}
                   style={customStyle}
                 >
                   <div className="text-xs font-bold uppercase tracking-wider mb-1 opacity-90">{month}</div>
-                  <div className="text-3xl font-extrabold leading-none mb-1">{day}</div>
+                  <div className="text-3xl font-bold leading-none mb-1">{day}</div>
                   <div className="text-xs font-bold uppercase tracking-wider opacity-90">{weekday}</div>
                 </div>
               </div>
 
               <div className="p-6 flex flex-col flex-1 bg-white">
-                <h3 className="text-xl font-bold mb-4 line-clamp-2 min-h-[3.5rem] text-gray-900">
+                <h3 className="text-xl font-medium mb-4 line-clamp-2 min-h-[3.5rem] text-gray-900">
                   {event.title}
                 </h3>
                 

@@ -29,7 +29,7 @@ function AppContent() {
     location.hash.includes('embed=1');
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#3b82f6] to-[#06b6d4]">
+    <div className="min-h-screen bg-white">
       {!isEmbed && <Navbar />}
       <Routes>
         <Route path="/" element={<Home />} />

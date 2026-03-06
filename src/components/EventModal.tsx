@@ -22,15 +22,6 @@ interface EventModalProps {
   initialData?: Event | null;
 }
 
-const CARD_STYLES = [
-  { bg: 'bg-[#5D5333]', hex: '#5D5333', name: 'Oliv', text: 'text-white', muted: 'text-white/80' },
-  { bg: 'bg-[#98D8A8]', hex: '#98D8A8', name: 'Hellgrün', text: 'text-gray-900', muted: 'text-gray-700' },
-  { bg: 'bg-[#f97316]', hex: '#f97316', name: 'Orange', text: 'text-white', muted: 'text-white/80' },
-  { bg: 'bg-[#7c3aed]', hex: '#7c3aed', name: 'Lila', text: 'text-white', muted: 'text-white/80' },
-  { bg: 'bg-[#7f1d1d]', hex: '#7f1d1d', name: 'Rot', text: 'text-white', muted: 'text-white/80' },
-  { bg: 'bg-[#064e3b]', hex: '#064e3b', name: 'Dunkelgrün', text: 'text-white', muted: 'text-white/80' },
-];
-
 export default function EventModal({ isOpen, onClose, onSubmit, initialData }: EventModalProps) {
   const [formData, setFormData] = useState<Event>({
     title: '',
@@ -39,7 +30,7 @@ export default function EventModal({ isOpen, onClose, onSubmit, initialData }: E
     start_time: '',
     end_time: '',
     image_url: '',
-    color: CARD_STYLES[0].hex,
+    color: '#0D89F9',
     button_text: 'JETZT ANMELDEN',
     button_link: '',
   });
@@ -67,7 +58,7 @@ export default function EventModal({ isOpen, onClose, onSubmit, initialData }: E
 
       setFormData({
         ...initialData,
-        color: initialData.color || CARD_STYLES[0].hex,
+        color: initialData.color || '#0D89F9',
         button_text: initialData.button_text || 'JETZT ANMELDEN',
         button_link: initialData.button_link || '',
       });
@@ -81,7 +72,7 @@ export default function EventModal({ isOpen, onClose, onSubmit, initialData }: E
         start_time: '',
         end_time: '',
         image_url: '',
-        color: CARD_STYLES[0].hex,
+        color: '#0D89F9',
         button_text: 'JETZT ANMELDEN',
         button_link: '',
       });
@@ -115,7 +106,7 @@ export default function EventModal({ isOpen, onClose, onSubmit, initialData }: E
     data.append('location', formData.location);
     data.append('start_time', startDateTime.toISOString());
     data.append('end_time', endDateTime.toISOString());
-    data.append('color', formData.color || CARD_STYLES[0].hex);
+    data.append('color', formData.color || '#0D89F9');
     data.append('button_text', formData.button_text || 'JETZT ANMELDEN');
     data.append('button_link', formData.button_link || '');
     
@@ -128,12 +119,16 @@ export default function EventModal({ isOpen, onClose, onSubmit, initialData }: E
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto overflow-x-hidden bg-black/50 backdrop-blur-sm p-4 md:inset-0 md:h-full">
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto overflow-x-hidden bg-black/50 backdrop-blur-sm p-4 md:inset-0 md:h-full"
+          onClick={onClose}
+        >
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
             className="relative w-full max-w-md h-full md:h-auto"
+            onClick={(e) => e.stopPropagation()}
           >
             <div className="relative bg-white rounded-lg shadow-xl">
               <button
@@ -193,27 +188,6 @@ export default function EventModal({ isOpen, onClose, onSubmit, initialData }: E
                     />
                   </div>
                   
-                  {/* Color Picker */}
-                  <div>
-                    <label className="block mb-2 text-sm font-medium text-gray-900">
-                      Hintergrundfarbe
-                    </label>
-                    <div className="grid grid-cols-6 gap-2">
-                      {CARD_STYLES.map((style) => (
-                        <button
-                          key={style.hex}
-                          type="button"
-                          onClick={() => setFormData({ ...formData, color: style.hex })}
-                          className={`w-8 h-8 rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary ${
-                            formData.color === style.hex ? 'ring-2 ring-offset-2 ring-primary' : ''
-                          }`}
-                          style={{ backgroundColor: style.hex }}
-                          title={style.name}
-                        />
-                      ))}
-                    </div>
-                  </div>
-
                   <div>
                     <label className="block mb-2 text-sm font-medium text-gray-900">
                       Bild
