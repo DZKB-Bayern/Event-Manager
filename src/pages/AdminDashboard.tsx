@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
-import { Trash2, User, Calendar, Search } from 'lucide-react';
+import { Trash2, User, Calendar, Search, Edit2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { de } from 'date-fns/locale';
+import UserModal from '../components/UserModal';
+import EventModal from '../components/EventModal';
 
 interface Profile {
   id: string;
@@ -15,8 +17,15 @@ interface Profile {
 interface Event {
   id: number;
   title: string;
+  description: string;
+  location: string;
   start_time: string;
+  end_time: string;
   user_id: string;
+  image_url?: string;
+  color?: string;
+  button_text?: string;
+  button_link?: string;
   profiles?: { username: string };
 }
 
@@ -27,6 +36,12 @@ export default function AdminDashboard() {
   const [selectedUser, setSelectedUser] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+
+  // Edit states
+  const [editingUser, setEditingUser] = useState<Profile | null>(null);
+  const [isUserModalOpen, setIsUserModalOpen] = useState(false);
+  const [editingEvent, setEditingEvent] = useState<Event | null>(null);
+  const [isEventModalOpen, setIsEventModalOpen] = useState(false);
 
   useEffect(() => {
     if (isAdmin) {
@@ -63,17 +78,44 @@ export default function AdminDashboard() {
   };
 
   const handleDeleteUser = async (userId: string) => {
-    if (!confirm('Sind Sie sicher? Alle Veranstaltungen dieses Benutzers werden ebenfalls gelöscht.')) return;
+    if (!confirm('Sind Sie sicher? Der Benutzer und alle seine Daten werden unwiderruflich gelöscht.')) return;
     try {
-      // Delete from auth.users via Supabase Admin API is not possible from client
-      // We can only delete from public.profiles if RLS allows, but usually we need a server function
-      // However, for this demo, let's assume we just delete from profiles and let cascade handle it?
-      // Actually, deleting from public.profiles won't delete the auth user.
-      // Client-side admin cannot delete auth users without a server-side function.
-      
-      alert('Das Löschen von Benutzern ist nur über das Supabase Dashboard möglich.');
-    } catch (error) {
+      // Call the Edge Function to delete the user from auth.users
+      const { error } = await supabase.functions.invoke('delete-user', {
+        body: { user_id: userId }
+      });
+
+      if (error) throw error;
+
+      // Refresh the list
+      loadData();
+    } catch (error: any) {
       console.error('Failed to delete user', error);
+      alert(error.message || 'Fehler beim Löschen des Benutzers');
+    }
+  };
+
+  const handleEditUser = (user: Profile) => {
+    setEditingUser(user);
+    setIsUserModalOpen(true);
+  };
+
+  const handleUpdateUser = async (userData: { username: string; role: string }) => {
+    if (!editingUser) return;
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ username: userData.username, role: userData.role })
+        .eq('id', editingUser.id);
+
+      if (error) throw error;
+
+      setIsUserModalOpen(false);
+      setEditingUser(null);
+      loadData();
+    } catch (error: any) {
+      console.error('Failed to update user', error);
+      alert(error.message);
     }
   };
 
@@ -92,8 +134,78 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleEditEvent = (event: Event) => {
+    setEditingEvent(event);
+    setIsEventModalOpen(true);
+  };
+
+  const handleUpdateEvent = async (formData: FormData) => {
+    if (!editingEvent) return;
+    try {
+      let image_url = editingEvent.image_url;
+      const imageFile = formData.get('image') as File;
+      
+      if (imageFile) {
+        const fileExt = imageFile.name.split('.').pop();
+        const fileName = `${Math.random()}.${fileExt}`;
+        const filePath = `${editingEvent.user_id}/${fileName}`;
+        
+        const { error: uploadError } = await supabase.storage
+          .from('events')
+          .upload(filePath, imageFile);
+          
+        if (uploadError) throw uploadError;
+        
+        const { data: { publicUrl } } = supabase.storage
+          .from('events')
+          .getPublicUrl(filePath);
+          
+        image_url = publicUrl;
+      }
+
+      const updates = {
+        title: formData.get('title') as string,
+        description: formData.get('description') as string,
+        location: formData.get('location') as string,
+        start_time: formData.get('start_time') as string,
+        end_time: formData.get('end_time') as string,
+        color: formData.get('color') as string,
+        button_text: formData.get('button_text') as string,
+        button_link: formData.get('button_link') as string,
+        image_url: image_url,
+      };
+
+      const { error } = await supabase
+        .from('events')
+        .update(updates)
+        .eq('id', editingEvent.id);
+
+      if (error) throw error;
+
+      setIsEventModalOpen(false);
+      setEditingEvent(null);
+      loadData();
+    } catch (error: any) {
+      console.error('Failed to update event', error);
+      alert(error.message);
+    }
+  };
+
   const handleSeedData = async () => {
-    alert('Die Demo-Daten-Funktion ist in der Supabase-Version deaktiviert. Bitte erstellen Sie Daten manuell.');
+    try {
+      const response = await fetch('/api/admin/seed', {
+        method: 'POST',
+      });
+      const data = await response.json();
+      if (response.ok) {
+        alert(data.message);
+        loadData();
+      } else {
+        alert(data.error);
+      }
+    } catch (error) {
+      console.error('Seed error', error);
+    }
   };
 
   const filteredEvents = selectedUser
@@ -113,8 +225,7 @@ export default function AdminDashboard() {
         <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
         <button
           onClick={handleSeedData}
-          className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 opacity-50 cursor-not-allowed"
-          title="In Supabase Version nicht verfügbar"
+          className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
         >
           Demo-Daten erstellen
         </button>
@@ -180,15 +291,28 @@ export default function AdminDashboard() {
                         </p>
                       </div>
                     </div>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeleteUser(user.id);
-                      }}
-                      className="ml-2 text-gray-400 hover:text-red-600 p-1"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
+                    <div className="flex items-center">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleEditUser(user);
+                        }}
+                        className="ml-2 text-gray-400 hover:text-primary p-1"
+                        title="Bearbeiten"
+                      >
+                        <Edit2 className="h-4 w-4" />
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteUser(user.id);
+                        }}
+                        className="ml-1 text-gray-400 hover:text-red-600 p-1"
+                        title="Löschen"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
                   </div>
                 </li>
               ))}
@@ -230,6 +354,13 @@ export default function AdminDashboard() {
                       </div>
                       <div className="flex items-center space-x-4">
                         <button
+                          onClick={() => handleEditEvent(event)}
+                          className="text-primary hover:text-primary-hover p-2 hover:bg-primary/10 rounded-full transition-colors"
+                          title="Bearbeiten"
+                        >
+                          <Edit2 className="h-5 w-5" />
+                        </button>
+                        <button
                           onClick={() => handleDeleteEvent(event.id)}
                           className="text-red-600 hover:text-red-900 p-2 hover:bg-red-50 rounded-full transition-colors"
                           title="Löschen"
@@ -245,6 +376,20 @@ export default function AdminDashboard() {
           </div>
         </div>
       </div>
+
+      <UserModal
+        isOpen={isUserModalOpen}
+        onClose={() => setIsUserModalOpen(false)}
+        onSubmit={handleUpdateUser}
+        initialData={editingUser}
+      />
+
+      <EventModal
+        isOpen={isEventModalOpen}
+        onClose={() => setIsEventModalOpen(false)}
+        onSubmit={handleUpdateEvent}
+        initialData={editingEvent}
+      />
     </div>
   );
 }

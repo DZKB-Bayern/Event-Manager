@@ -8,9 +8,13 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import multer from 'multer';
 import fs from 'fs';
+import { Resend } from 'resend';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const db = new Database('events.db');
+
+// Initialize Resend
+const resend = new Resend(process.env.RESEND_API_KEY || 're_123456789'); // Placeholder if missing
 
 // Configure Multer
 const storage = multer.diskStorage({
@@ -208,10 +212,45 @@ app.get('/api/auth/me', authenticateToken, (req, res) => {
   res.json({ user: req.user });
 });
 
+// Dev Tool: Promote Me to Admin
+app.post('/api/admin/promote-me', authenticateToken, (req, res) => {
+  try {
+    db.prepare('UPDATE users SET role = ? WHERE id = ?').run('admin', req.user!.id);
+    // Update the token with new role
+    const user = db.prepare('SELECT * FROM users WHERE id = ?').get(req.user!.id) as any;
+    const token = jwt.sign({ id: user.id, username: user.username, role: user.role }, JWT_SECRET, { expiresIn: '24h' });
+    res.cookie('token', token, { httpOnly: true, sameSite: 'none', secure: true });
+    
+    res.json({ message: 'You are now an admin! Please refresh the page.', user: { id: user.id, username: user.username, role: user.role } });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Admin: Get All Users
 app.get('/api/admin/users', authenticateToken, isAdmin, (req, res) => {
   const users = db.prepare('SELECT id, username, role, created_at FROM users').all();
   res.json(users);
+});
+
+// Admin: Update User
+app.put('/api/admin/users/:id', authenticateToken, isAdmin, async (req, res) => {
+  const { id } = req.params;
+  const { username, role, password } = req.body;
+  
+  try {
+    if (password) {
+      const hashedPassword = await bcrypt.hash(password, 10);
+      db.prepare('UPDATE users SET username = ?, role = ?, password_hash = ? WHERE id = ?')
+        .run(username, role, hashedPassword, id);
+    } else {
+      db.prepare('UPDATE users SET username = ?, role = ? WHERE id = ?')
+        .run(username, role, id);
+    }
+    res.json({ message: 'User updated successfully' });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
 // Admin: Delete User
@@ -328,8 +367,61 @@ app.get('/api/events', (req, res) => {
   res.json(events);
 });
 
+// Events: My Events
+app.get('/api/events/me', authenticateToken, (req, res) => {
+  const stmt = db.prepare(`
+    SELECT * FROM events 
+    WHERE user_id = ? 
+    ORDER BY start_time ASC
+  `);
+  const events = stmt.all(req.user!.id);
+  res.json(events);
+});
+
+// Helper: Send Email Notification (Resend Integration)
+async function sendEmailNotification(event: any, user: any) {
+  console.log('---------------------------------------------------');
+  console.log('📧 EMAIL NOTIFICATION TRIGGERED');
+  
+  if (process.env.RESEND_API_KEY) {
+    try {
+      console.log('Attempting to send email via Resend...');
+      const { data, error } = await resend.emails.send({
+        from: 'Events App <onboarding@resend.dev>',
+        to: ['admin@example.com'], // In a real app, this would be the admin's email
+        subject: `New Event Created: ${event.title}`,
+        html: `
+          <h1>New Event Created</h1>
+          <p><strong>User:</strong> ${user.username}</p>
+          <p><strong>Title:</strong> ${event.title}</p>
+          <p><strong>Description:</strong> ${event.description}</p>
+          <p><strong>Time:</strong> ${event.start_time}</p>
+          <p><strong>Location:</strong> ${event.location}</p>
+        `
+      });
+
+      if (error) {
+        console.error('Resend Error:', error);
+      } else {
+        console.log('Email sent successfully via Resend:', data);
+      }
+    } catch (err) {
+      console.error('Failed to send email via Resend:', err);
+    }
+  } else {
+    console.log('⚠️ RESEND_API_KEY not found. Skipping actual email send.');
+    console.log('To enable real emails, add RESEND_API_KEY to your .env file.');
+  }
+
+  console.log(`To: admin@example.com`);
+  console.log(`Subject: New Event Created: ${event.title}`);
+  console.log(`Body: User ${user.username} created a new event.`);
+  console.log(`Event Details:`, event);
+  console.log('---------------------------------------------------');
+}
+
 // Events: Create
-app.post('/api/events', authenticateToken, upload.single('image'), (req, res) => {
+app.post('/api/events', authenticateToken, upload.single('image'), async (req, res) => {
   try {
     console.log('POST /api/events body:', req.body);
     console.log('POST /api/events file:', req.file);
@@ -348,7 +440,13 @@ app.post('/api/events', authenticateToken, upload.single('image'), (req, res) =>
     `);
     
     const result = stmt.run(req.user!.id, title, description, location, start_time, end_time, image_url, color, button_text, button_link);
-    res.json({ id: result.lastInsertRowid, ...req.body, image_url, user_id: req.user!.id });
+    
+    const newEvent = { id: result.lastInsertRowid, ...req.body, image_url, user_id: req.user!.id };
+    
+    // Trigger Email Notification
+    await sendEmailNotification(newEvent, req.user);
+
+    res.json(newEvent);
   } catch (error: any) {
     console.error('Error creating event:', error);
     res.status(500).json({ error: error.message || 'Internal server error' });
