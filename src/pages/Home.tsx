@@ -25,8 +25,8 @@ interface Event {
 const CARD_STYLES = [
   { bg: 'bg-[#5D5333]', hex: '#5D5333', text: 'text-white', muted: 'text-white/80' }, // Olive
   { bg: 'bg-[#98D8A8]', hex: '#98D8A8', text: 'text-gray-900', muted: 'text-gray-700' }, // Light Green
-  { bg: 'bg-[#3b82f6]', hex: '#3b82f6', text: 'text-white', muted: 'text-white/80' }, // Blue
-  { bg: 'bg-[#1e3a8a]', hex: '#1e3a8a', text: 'text-white', muted: 'text-white/80' }, // Dark Blue
+  { bg: 'bg-[#f97316]', hex: '#f97316', text: 'text-white', muted: 'text-white/80' }, // Orange
+  { bg: 'bg-[#7c3aed]', hex: '#7c3aed', text: 'text-white', muted: 'text-white/80' }, // Purple
   { bg: 'bg-[#7f1d1d]', hex: '#7f1d1d', text: 'text-white', muted: 'text-white/80' }, // Red
   { bg: 'bg-[#064e3b]', hex: '#064e3b', text: 'text-white', muted: 'text-white/80' }, // Dark Green
 ];
@@ -80,25 +80,25 @@ export default function Home() {
     <div className={`max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 ${isEmbed ? 'py-4' : 'py-12'}`}>
       <div className="flex flex-col md:flex-row justify-between items-end mb-12 gap-4">
         <div className="text-center md:text-left w-full md:w-auto">
-          <h1 className="text-4xl font-extrabold text-gray-900 sm:text-5xl sm:tracking-tight lg:text-6xl">
+          <h1 className="text-4xl font-extrabold text-white sm:text-5xl sm:tracking-tight lg:text-6xl">
             Unsere Events
           </h1>
-          <p className="mt-5 max-w-xl text-xl text-gray-500 mx-auto md:mx-0">
+          <p className="mt-5 max-w-xl text-xl text-blue-50 mx-auto md:mx-0">
             Zukünftige Veranstaltungen unserer Mitglieder.
           </p>
         </div>
 
-        <div className="bg-gray-100 p-1 rounded-lg flex items-center shrink-0 self-center md:self-end">
+        <div className="bg-white/10 backdrop-blur-sm p-1 rounded-lg flex items-center shrink-0 self-center md:self-end border border-white/20">
           <button
             onClick={() => setViewMode('grid')}
-            className={`p-2 rounded-md transition-all ${viewMode === 'grid' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-900'}`}
+            className={`p-2 rounded-md transition-all ${viewMode === 'grid' ? 'bg-white shadow-sm text-gray-900' : 'text-white hover:bg-white/10'}`}
             title="Kartenansicht"
           >
             <LayoutGrid className="w-5 h-5" />
           </button>
           <button
             onClick={() => setViewMode('list')}
-            className={`p-2 rounded-md transition-all ${viewMode === 'list' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-900'}`}
+            className={`p-2 rounded-md transition-all ${viewMode === 'list' ? 'bg-white shadow-sm text-gray-900' : 'text-white hover:bg-white/10'}`}
             title="Listenansicht"
           >
             <List className="w-5 h-5" />
@@ -111,6 +111,7 @@ export default function Home() {
           // Determine style based on event.color or fallback to index
           let style = CARD_STYLES[index % CARD_STYLES.length];
           let customStyle = {};
+          let isLight = false; // Default to dark background (white text)
           
           if (event.color) {
             // Check if it matches one of our presets to get the text color
@@ -118,6 +119,9 @@ export default function Home() {
             
             if (matchedStyle) {
               style = matchedStyle;
+              // Determine brightness for preset styles (most are dark backgrounds)
+              // Olive #5D5333 (Dark), Light Green #98D8A8 (Light), Blue #3b82f6 (Dark-ish), Dark Blue #1e3a8a (Dark), Red #7f1d1d (Dark), Dark Green #064e3b (Dark)
+              isLight = matchedStyle.hex === '#98D8A8'; 
             } else {
               // Fallback logic for custom colors (simple brightness check)
               // Convert hex to RGB to calculate brightness
@@ -127,7 +131,7 @@ export default function Home() {
               const b = parseInt(hex.substr(4, 2), 16);
               const brightness = ((r * 299) + (g * 587) + (b * 114)) / 1000;
               
-              const isLight = brightness > 155; // Threshold for text color
+              isLight = brightness > 155; // Threshold for text color
               
               style = {
                 bg: '', 
@@ -137,6 +141,17 @@ export default function Home() {
               };
             }
             customStyle = { backgroundColor: event.color };
+          } else {
+             // Default styles logic (mostly dark backgrounds except maybe light green if it was default)
+             // Our default styles list:
+             // 0: Olive (Dark)
+             // 1: Light Green (Light)
+             // 2: Blue (Dark)
+             // 3: Dark Blue (Dark)
+             // 4: Red (Dark)
+             // 5: Dark Green (Dark)
+             const styleIndex = index % CARD_STYLES.length;
+             isLight = styleIndex === 1; // Only the light green one is light
           }
 
           const date = new Date(event.start_time);
@@ -155,78 +170,90 @@ export default function Home() {
           };
 
           if (viewMode === 'list') {
+            // Calculate badge background based on brightness
+            const badgeClass = 'bg-gray-100 text-gray-700';
+            const borderColor = event.color || style.hex;
+
             return (
               <motion.div
                 key={event.id}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.1 }}
-                className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex flex-col md:flex-row hover:shadow-md transition-shadow duration-300 cursor-pointer group"
+                className={`rounded-xl shadow-sm overflow-hidden flex flex-row hover:shadow-md transition-all duration-300 cursor-pointer group bg-white border-2`}
+                style={{ borderColor: borderColor }}
                 onClick={() => setSelectedEvent(displayEvent as any)}
               >
-                {/* Date Column */}
+                {/* Date Column - Colored background */}
                 <div 
-                  className={`p-4 md:w-32 flex flex-col justify-center items-center text-center shrink-0 ${style.bg} ${style.text}`}
+                  className={`w-20 sm:w-24 shrink-0 flex flex-col justify-center items-center text-center p-2 ${style.bg} ${style.text}`}
                   style={customStyle}
                 >
-                  <div className="text-sm font-bold uppercase tracking-wider mb-1 opacity-90">{month}</div>
-                  <div className="text-4xl font-bold leading-none mb-1">{day}</div>
-                  <div className="text-sm font-bold uppercase tracking-wider opacity-90">{weekday}</div>
+                  <div className="text-xs font-bold uppercase tracking-wider mb-0.5 opacity-80">{month}</div>
+                  <div className="text-2xl sm:text-3xl font-extrabold leading-none mb-0.5">{day}</div>
+                  <div className="text-xs font-bold uppercase tracking-wider opacity-80">{weekday}</div>
                 </div>
 
-                {/* Image */}
-                <div className="md:w-64 h-48 md:h-auto shrink-0 relative overflow-hidden">
-                  <img 
-                    src={event.image_url || `https://picsum.photos/seed/${event.id}/800/600`} 
-                    alt={event.title} 
-                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" 
-                  />
-                </div>
-
-                {/* Content */}
-                <div className="p-6 flex flex-col flex-1 justify-center min-w-0">
-                  <h3 className="text-2xl font-bold mb-3 text-gray-900 truncate">
-                    {event.title}
-                  </h3>
-                  
-                  <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm font-medium text-gray-500 mb-4">
-                    <div className="flex items-center">
-                      <Clock className="h-4 w-4 mr-2 text-primary" />
-                      <span>{startTime} - {endTime} Uhr</span>
-                    </div>
-                    {event.location && (
-                      <div className="flex items-center">
-                        <MapPin className="h-4 w-4 mr-2 text-primary" />
-                        <span className="truncate">{event.location}</span>
-                      </div>
-                    )}
+                {/* Main Content Area - White background */}
+                <div className="flex-1 flex items-center p-3 sm:p-4 gap-4 min-w-0 bg-white">
+                  {/* Image Thumbnail */}
+                  <div className="hidden sm:block w-20 h-20 shrink-0 rounded-lg overflow-hidden shadow-sm">
+                    <img 
+                      src={event.image_url || `https://picsum.photos/seed/${event.id}/200/200`} 
+                      alt={event.title} 
+                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" 
+                    />
                   </div>
 
-                  <p className="text-gray-600 line-clamp-2 mb-4 flex-1">
-                    {event.description}
-                  </p>
+                  {/* Text Content */}
+                  <div className="flex-1 min-w-0 flex flex-col justify-center gap-2">
+                    <h3 className="text-lg sm:text-xl font-bold leading-tight truncate pr-2 text-gray-900">
+                      {event.title}
+                    </h3>
+                    
+                    {/* Badges Row */}
+                    <div className="flex flex-wrap gap-2 text-xs font-medium opacity-90">
+                      <div className={`px-2.5 py-1 rounded-md flex items-center ${badgeClass}`}>
+                        <Clock className="h-3.5 w-3.5 mr-1.5 opacity-60" />
+                        <span>{startTime} - {endTime}</span>
+                      </div>
+                      {event.location && (
+                        <div className={`px-2.5 py-1 rounded-md flex items-center truncate max-w-[150px] ${badgeClass}`}>
+                          <MapPin className="h-3.5 w-3.5 mr-1.5 opacity-60" />
+                          <span className="truncate">{event.location}</span>
+                        </div>
+                      )}
+                    </div>
 
-                  {event.button_link ? (
-                    <a 
-                      href={event.button_link}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="btn-cta self-end"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      {event.button_text || 'JETZT ANMELDEN'}
-                    </a>
-                  ) : (
-                    <button 
-                      className="btn-cta self-end"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSelectedEvent(displayEvent as any);
-                      }}
-                    >
-                      {event.button_text || 'JETZT ANMELDEN'}
-                    </button>
-                  )}
+                    <p className={`text-sm line-clamp-1 text-gray-600 hidden sm:block`}>
+                      {event.description}
+                    </p>
+                  </div>
+
+                  {/* Button - Right aligned */}
+                  <div className="shrink-0 ml-2">
+                    {event.button_link ? (
+                      <a 
+                        href={event.button_link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="btn-cta text-xs sm:text-sm px-3 py-2 sm:px-4 sm:py-2 whitespace-nowrap shadow-md"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        {event.button_text || 'ANMELDEN'}
+                      </a>
+                    ) : (
+                      <button 
+                        className="btn-cta text-xs sm:text-sm px-3 py-2 sm:px-4 sm:py-2 whitespace-nowrap shadow-md"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedEvent(displayEvent as any);
+                        }}
+                      >
+                        {event.button_text || 'ANMELDEN'}
+                      </button>
+                    )}
+                  </div>
                 </div>
               </motion.div>
             );
@@ -238,8 +265,8 @@ export default function Home() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.1 }}
-              className={`rounded-xl shadow-lg overflow-hidden flex flex-col h-full ${style.bg} ${style.text} cursor-pointer hover:shadow-xl hover:-translate-y-1 transition-all duration-300`}
-              style={customStyle}
+              className={`rounded-xl shadow-lg overflow-hidden flex flex-col h-full bg-white border-2 cursor-pointer hover:shadow-xl hover:-translate-y-1 transition-all duration-300`}
+              style={{ borderColor: event.color || style.hex }}
               onClick={() => setSelectedEvent(displayEvent as any)}
             >
               <div className="relative h-56 shrink-0">
@@ -249,33 +276,34 @@ export default function Home() {
                   className="w-full h-full object-cover" 
                 />
                 <div 
-                  className={`absolute top-0 left-6 p-3 text-center min-w-[80px] rounded-b-lg shadow-md backdrop-blur-sm bg-white/90 text-gray-900`}
+                  className={`absolute top-0 left-6 p-3 text-center min-w-[80px] rounded-b-lg shadow-md backdrop-blur-sm ${style.bg} ${style.text}`}
+                  style={customStyle}
                 >
-                  <div className="text-xs font-bold uppercase tracking-wider mb-1 text-primary">{month}</div>
+                  <div className="text-xs font-bold uppercase tracking-wider mb-1 opacity-90">{month}</div>
                   <div className="text-3xl font-extrabold leading-none mb-1">{day}</div>
-                  <div className="text-xs font-bold uppercase tracking-wider text-gray-500">{weekday}</div>
+                  <div className="text-xs font-bold uppercase tracking-wider opacity-90">{weekday}</div>
                 </div>
               </div>
 
-              <div className="p-6 flex flex-col flex-1">
-                <h3 className={`text-xl font-bold mb-4 line-clamp-2 min-h-[3.5rem] ${style.text}`}>
+              <div className="p-6 flex flex-col flex-1 bg-white">
+                <h3 className="text-xl font-bold mb-4 line-clamp-2 min-h-[3.5rem] text-gray-900">
                   {event.title}
                 </h3>
                 
-                  <div className={`space-y-3 mb-6 text-sm font-medium ${style.muted}`}>
+                  <div className="space-y-3 mb-6 text-sm font-medium text-gray-600">
                     <div className="flex items-center">
-                      <Clock className="h-4 w-4 mr-3 shrink-0 opacity-80" />
+                      <Clock className="h-4 w-4 mr-3 shrink-0 text-primary" />
                       <span>{startTime} - {endTime}</span>
                     </div>
                     {event.location && (
                       <div className="flex items-center">
-                        <MapPin className="h-4 w-4 mr-3 shrink-0 opacity-80" />
+                        <MapPin className="h-4 w-4 mr-3 shrink-0 text-primary" />
                         <span className="truncate">{event.location}</span>
                       </div>
                     )}
                   </div>
 
-                <p className={`text-sm leading-relaxed line-clamp-4 mb-6 ${style.muted}`}>
+                <p className="text-sm leading-relaxed line-clamp-4 mb-6 text-gray-600">
                   {event.description}
                 </p>
 

@@ -25,8 +25,8 @@ interface EventModalProps {
 const CARD_STYLES = [
   { bg: 'bg-[#5D5333]', hex: '#5D5333', name: 'Oliv', text: 'text-white', muted: 'text-white/80' },
   { bg: 'bg-[#98D8A8]', hex: '#98D8A8', name: 'Hellgrün', text: 'text-gray-900', muted: 'text-gray-700' },
-  { bg: 'bg-[#3b82f6]', hex: '#3b82f6', name: 'Blau', text: 'text-white', muted: 'text-white/80' },
-  { bg: 'bg-[#1e3a8a]', hex: '#1e3a8a', name: 'Dunkelblau', text: 'text-white', muted: 'text-white/80' },
+  { bg: 'bg-[#f97316]', hex: '#f97316', name: 'Orange', text: 'text-white', muted: 'text-white/80' },
+  { bg: 'bg-[#7c3aed]', hex: '#7c3aed', name: 'Lila', text: 'text-white', muted: 'text-white/80' },
   { bg: 'bg-[#7f1d1d]', hex: '#7f1d1d', name: 'Rot', text: 'text-white', muted: 'text-white/80' },
   { bg: 'bg-[#064e3b]', hex: '#064e3b', name: 'Dunkelgrün', text: 'text-white', muted: 'text-white/80' },
 ];
