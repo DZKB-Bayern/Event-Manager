@@ -131,7 +131,7 @@ export default function AdminDashboard() {
               </div>
               <input
                 type="text"
-                className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-primary focus:border-primary sm:text-sm"
                 placeholder="Benutzer suchen..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -141,13 +141,13 @@ export default function AdminDashboard() {
           <div className="overflow-y-auto flex-1 p-0">
             <ul className="divide-y divide-gray-200">
               <li 
-                className={`px-4 py-4 hover:bg-gray-50 cursor-pointer transition-colors ${selectedUser === null ? 'bg-indigo-50' : ''}`}
+                className={`px-4 py-4 hover:bg-gray-50 cursor-pointer transition-colors ${selectedUser === null ? 'bg-primary/10' : ''}`}
                 onClick={() => setSelectedUser(null)}
               >
                 <div className="flex items-center space-x-3">
                   <div className="shrink-0">
-                    <div className="h-10 w-10 rounded-full bg-indigo-100 flex items-center justify-center">
-                      <User className="h-6 w-6 text-indigo-600" />
+                    <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                      <User className="h-6 w-6 text-primary" />
                     </div>
                   </div>
                   <div className="flex-1 min-w-0">
@@ -159,7 +159,7 @@ export default function AdminDashboard() {
               {filteredUsers.map((user) => (
                 <li 
                   key={user.id} 
-                  className={`px-4 py-4 hover:bg-gray-50 cursor-pointer transition-colors ${selectedUser === user.id ? 'bg-indigo-50' : ''}`}
+                  className={`px-4 py-4 hover:bg-gray-50 cursor-pointer transition-colors ${selectedUser === user.id ? 'bg-primary/10' : ''}`}
                   onClick={() => setSelectedUser(user.id)}
                 >
                   <div className="flex items-center justify-between">
@@ -202,7 +202,7 @@ export default function AdminDashboard() {
             <h2 className="text-lg font-medium text-gray-900">
               Veranstaltungen {selectedUser ? `von ${users.find(u => u.id === selectedUser)?.username}` : 'aller Benutzer'}
             </h2>
-            <span className="bg-indigo-100 text-indigo-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
+            <span className="bg-primary/10 text-primary text-xs font-medium px-2.5 py-0.5 rounded-full">
               {filteredEvents.length} Events
             </span>
           </div>

@@ -157,7 +157,7 @@ export default function EventModal({ isOpen, onClose, onSubmit, initialData }: E
                       type="text"
                       name="title"
                       id="title"
-                      className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block w-full p-2.5"
+                      className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary focus:border-primary block w-full p-2.5"
                       placeholder="Veranstaltungstitel"
                       required
                       value={formData.title}
@@ -172,7 +172,7 @@ export default function EventModal({ isOpen, onClose, onSubmit, initialData }: E
                       name="description"
                       id="description"
                       rows={3}
-                      className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block w-full p-2.5"
+                      className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary focus:border-primary block w-full p-2.5"
                       placeholder="Veranstaltungsbeschreibung"
                       value={formData.description}
                       onChange={(e) => setFormData({ ...formData, description: e.target.value })}
@@ -186,7 +186,7 @@ export default function EventModal({ isOpen, onClose, onSubmit, initialData }: E
                       type="text"
                       name="location"
                       id="location"
-                      className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block w-full p-2.5"
+                      className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary focus:border-primary block w-full p-2.5"
                       placeholder="Veranstaltungsort"
                       value={formData.location}
                       onChange={(e) => setFormData({ ...formData, location: e.target.value })}
@@ -204,8 +204,8 @@ export default function EventModal({ isOpen, onClose, onSubmit, initialData }: E
                           key={style.hex}
                           type="button"
                           onClick={() => setFormData({ ...formData, color: style.hex })}
-                          className={`w-8 h-8 rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 ${
-                            formData.color === style.hex ? 'ring-2 ring-offset-2 ring-indigo-500' : ''
+                          className={`w-8 h-8 rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary ${
+                            formData.color === style.hex ? 'ring-2 ring-offset-2 ring-primary' : ''
                           }`}
                           style={{ backgroundColor: style.hex }}
                           title={style.name}
@@ -241,7 +241,7 @@ export default function EventModal({ isOpen, onClose, onSubmit, initialData }: E
                       <input
                         type="date"
                         id="start_date"
-                        className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block w-full p-2.5"
+                        className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary focus:border-primary block w-full p-2.5"
                         required
                         value={startDate}
                         onChange={(e) => setStartDate(e.target.value)}
@@ -254,7 +254,7 @@ export default function EventModal({ isOpen, onClose, onSubmit, initialData }: E
                       <input
                         type="time"
                         id="start_time"
-                        className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block w-full p-2.5"
+                        className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary focus:border-primary block w-full p-2.5"
                         required
                         value={startTime}
                         onChange={(e) => setStartTime(e.target.value)}
@@ -270,7 +270,7 @@ export default function EventModal({ isOpen, onClose, onSubmit, initialData }: E
                       <input
                         type="date"
                         id="end_date"
-                        className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block w-full p-2.5"
+                        className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary focus:border-primary block w-full p-2.5"
                         required
                         value={endDate}
                         onChange={(e) => setEndDate(e.target.value)}
@@ -283,7 +283,7 @@ export default function EventModal({ isOpen, onClose, onSubmit, initialData }: E
                       <input
                         type="time"
                         id="end_time"
-                        className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block w-full p-2.5"
+                        className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary focus:border-primary block w-full p-2.5"
                         required
                         value={endTime}
                         onChange={(e) => setEndTime(e.target.value)}
@@ -300,7 +300,7 @@ export default function EventModal({ isOpen, onClose, onSubmit, initialData }: E
                         type="text"
                         name="button_text"
                         id="button_text"
-                        className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block w-full p-2.5"
+                        className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary focus:border-primary block w-full p-2.5"
                         placeholder="z.B. JETZT ANMELDEN"
                         value={formData.button_text}
                         onChange={(e) => setFormData({ ...formData, button_text: e.target.value })}
@@ -314,7 +314,7 @@ export default function EventModal({ isOpen, onClose, onSubmit, initialData }: E
                         type="url"
                         name="button_link"
                         id="button_link"
-                        className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block w-full p-2.5"
+                        className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary focus:border-primary block w-full p-2.5"
                         placeholder="https://..."
                         value={formData.button_link}
                         onChange={(e) => setFormData({ ...formData, button_link: e.target.value })}
@@ -324,7 +324,7 @@ export default function EventModal({ isOpen, onClose, onSubmit, initialData }: E
 
                   <button
                     type="submit"
-                    className="w-full text-white bg-indigo-600 hover:bg-indigo-700 focus:ring-4 focus:outline-none focus:ring-indigo-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center"
+                    className="w-full text-white bg-primary hover:bg-primary-hover focus:ring-4 focus:outline-none focus:ring-primary/50 font-medium rounded-lg text-sm px-5 py-2.5 text-center"
                   >
                     {initialData ? 'Veranstaltung aktualisieren' : 'Veranstaltung erstellen'}
                   </button>

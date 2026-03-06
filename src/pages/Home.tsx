@@ -59,7 +59,7 @@ export default function Home() {
   if (loading) {
     return (
       <div className="flex justify-center items-center h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
       </div>
     );
   }
@@ -164,12 +164,12 @@ export default function Home() {
                   
                   <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm font-medium text-gray-500 mb-4">
                     <div className="flex items-center">
-                      <Clock className="h-4 w-4 mr-2 text-indigo-500" />
+                      <Clock className="h-4 w-4 mr-2 text-primary" />
                       <span>{startTime} - {endTime} Uhr</span>
                     </div>
                     {event.location && (
                       <div className="flex items-center">
-                        <MapPin className="h-4 w-4 mr-2 text-indigo-500" />
+                        <MapPin className="h-4 w-4 mr-2 text-primary" />
                         <span className="truncate">{event.location}</span>
                       </div>
                     )}
@@ -249,19 +249,23 @@ export default function Home() {
                   )}
                 </div>
 
+                <p className={`text-sm leading-relaxed line-clamp-5 mb-6 ${style.muted}`}>
+                  {event.description}
+                </p>
+
                 {event.button_link ? (
                   <a 
                     href={event.button_link}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="block w-full bg-[#22c55e] hover:bg-[#16a34a] text-white font-bold py-3 px-4 rounded transition-colors mb-6 uppercase tracking-wide text-sm shadow-sm text-center"
+                    className="block w-full bg-[#22c55e] hover:bg-[#16a34a] text-white font-bold py-3 px-4 rounded transition-colors mt-auto uppercase tracking-wide text-sm shadow-sm text-center"
                     onClick={(e) => e.stopPropagation()}
                   >
                     {event.button_text || 'JETZT ANMELDEN'}
                   </a>
                 ) : (
                   <button 
-                    className="w-full bg-[#22c55e] hover:bg-[#16a34a] text-white font-bold py-3 px-4 rounded transition-colors mb-6 uppercase tracking-wide text-sm shadow-sm"
+                    className="w-full bg-[#22c55e] hover:bg-[#16a34a] text-white font-bold py-3 px-4 rounded transition-colors mt-auto uppercase tracking-wide text-sm shadow-sm"
                     onClick={(e) => {
                       e.stopPropagation();
                       setSelectedEvent(displayEvent as any);
@@ -270,10 +274,6 @@ export default function Home() {
                     {event.button_text || 'JETZT ANMELDEN'}
                   </button>
                 )}
-
-                <p className={`text-sm leading-relaxed line-clamp-5 ${style.muted}`}>
-                  {event.description}
-                </p>
               </div>
             </motion.div>
           );

@@ -90,7 +90,7 @@ export default function EventDetailsModal({ isOpen, onClose, event }: EventDetai
                   <div className="space-y-6">
                     <div>
                       <h3 className="text-lg font-semibold text-gray-900 mb-2">Beschreibung</h3>
-                      <div className="prose prose-indigo text-gray-600 leading-relaxed whitespace-pre-wrap">
+                      <div className="prose prose-blue text-gray-600 leading-relaxed whitespace-pre-wrap">
                         {event.description}
                       </div>
                     </div>
@@ -100,7 +100,7 @@ export default function EventDetailsModal({ isOpen, onClose, event }: EventDetai
                   <div className="space-y-6">
                     <div className="bg-gray-50 p-5 rounded-xl space-y-4 border border-gray-100">
                       <div className="flex items-start">
-                        <Calendar className="w-5 h-5 text-indigo-600 mt-0.5 mr-3 shrink-0" />
+                        <Calendar className="w-5 h-5 text-primary mt-0.5 mr-3 shrink-0" />
                         <div>
                           <p className="text-sm font-medium text-gray-900">Datum</p>
                           <p className="text-sm text-gray-600">{formattedDate}</p>
@@ -108,7 +108,7 @@ export default function EventDetailsModal({ isOpen, onClose, event }: EventDetai
                       </div>
                       
                       <div className="flex items-start">
-                        <Clock className="w-5 h-5 text-indigo-600 mt-0.5 mr-3 shrink-0" />
+                        <Clock className="w-5 h-5 text-primary mt-0.5 mr-3 shrink-0" />
                         <div>
                           <p className="text-sm font-medium text-gray-900">Zeit</p>
                           <p className="text-sm text-gray-600">{startTime} - {endTime} Uhr</p>
@@ -117,7 +117,7 @@ export default function EventDetailsModal({ isOpen, onClose, event }: EventDetai
 
                       {event.location && (
                         <div className="flex items-start">
-                          <MapPin className="w-5 h-5 text-indigo-600 mt-0.5 mr-3 shrink-0" />
+                          <MapPin className="w-5 h-5 text-primary mt-0.5 mr-3 shrink-0" />
                           <div>
                             <p className="text-sm font-medium text-gray-900">Ort</p>
                             <p className="text-sm text-gray-600">{event.location}</p>
