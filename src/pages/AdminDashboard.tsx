@@ -1,13 +1,15 @@
 import { useEffect, useState } from 'react';
+import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import { Trash2, User, Calendar, Search, Edit2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { de } from 'date-fns/locale';
 import UserModal from '../components/UserModal';
 import EventModal from '../components/EventModal';
+import DeleteUserModal from '../components/DeleteUserModal';
 
 interface Profile {
-  id: number;
+  id: string;
   username: string;
   role: string;
   created_at: string;
@@ -20,19 +22,19 @@ interface Event {
   location: string;
   start_time: string;
   end_time: string;
-  user_id: number;
+  user_id: string;
   image_url?: string;
   color?: string;
   button_text?: string;
   button_link?: string;
-  creator_name?: string;
+  profiles?: { username: string };
 }
 
 export default function AdminDashboard() {
   const { isAdmin, loading: authLoading } = useAuth();
   const [users, setUsers] = useState<Profile[]>([]);
   const [events, setEvents] = useState<Event[]>([]);
-  const [selectedUser, setSelectedUser] = useState<number | null>(null);
+  const [selectedUser, setSelectedUser] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -41,6 +43,10 @@ export default function AdminDashboard() {
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
   const [isEventModalOpen, setIsEventModalOpen] = useState(false);
+
+  // Delete states
+  const [userToDelete, setUserToDelete] = useState<Profile | null>(null);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
   useEffect(() => {
     if (isAdmin) {
@@ -51,17 +57,23 @@ export default function AdminDashboard() {
   const loadData = async () => {
     setLoading(true);
     try {
-      // Fetch users
-      const usersRes = await fetch('/api/admin/users');
-      if (!usersRes.ok) throw new Error('Failed to fetch users');
-      const usersData = await usersRes.json();
-      setUsers(usersData || []);
+      // Fetch profiles
+      const { data: profiles, error: profilesError } = await supabase
+        .from('profiles')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (profilesError) throw profilesError;
+      setUsers(profiles || []);
 
       // Fetch events
-      const eventsRes = await fetch('/api/events');
-      if (!eventsRes.ok) throw new Error('Failed to fetch events');
-      const eventsData = await eventsRes.json();
-      setEvents(eventsData || []);
+      const { data: allEvents, error: eventsError } = await supabase
+        .from('events')
+        .select('*, profiles(username)')
+        .order('start_time', { ascending: false });
+
+      if (eventsError) throw eventsError;
+      setEvents(allEvents || []);
       
     } catch (error) {
       console.error('Failed to load admin data', error);
@@ -70,23 +82,39 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleDeleteUser = async (userId: number) => {
-    if (!confirm('Sind Sie sicher? Der Benutzer und alle seine Daten werden unwiderruflich gelöscht.')) return;
+  const handleDeleteUserClick = (user: Profile) => {
+    setUserToDelete(user);
+    setIsDeleteModalOpen(true);
+  };
+
+  const confirmDeleteUser = async () => {
+    if (!userToDelete) return;
+    
     try {
-      const res = await fetch(`/api/admin/users/${userId}`, {
-        method: 'DELETE',
+      // Call the Edge Function to delete the user from auth.users
+      const { error } = await supabase.functions.invoke('delete-user', {
+        body: { user_id: userToDelete.id }
       });
 
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || 'Fehler beim Löschen des Benutzers');
-      }
+      if (error) throw error;
 
       // Refresh the list
       loadData();
+      setIsDeleteModalOpen(false);
+      setUserToDelete(null);
     } catch (error: any) {
-      console.error('Failed to delete user', error);
-      alert(error.message || 'Fehler beim Löschen des Benutzers');
+      console.error('Failed to delete user:', error);
+      // Try to extract a meaningful error message
+      let errorMessage = 'Fehler beim Löschen des Benutzers';
+      if (error.message) {
+        errorMessage = error.message;
+      } else if (typeof error === 'string') {
+        errorMessage = error;
+      } else if (error.error_description) {
+        errorMessage = error.error_description;
+      }
+      
+      alert(errorMessage);
     }
   };
 
@@ -98,18 +126,12 @@ export default function AdminDashboard() {
   const handleUpdateUser = async (userData: { username: string; role: string }) => {
     if (!editingUser) return;
     try {
-      const res = await fetch(`/api/admin/users/${editingUser.id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(userData),
-      });
+      const { error } = await supabase
+        .from('profiles')
+        .update({ username: userData.username, role: userData.role })
+        .eq('id', editingUser.id);
 
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || 'Failed to update user');
-      }
+      if (error) throw error;
 
       setIsUserModalOpen(false);
       setEditingUser(null);
@@ -123,14 +145,12 @@ export default function AdminDashboard() {
   const handleDeleteEvent = async (eventId: number) => {
     if (!confirm('Veranstaltung wirklich löschen?')) return;
     try {
-      const res = await fetch(`/api/admin/events/${eventId}`, {
-        method: 'DELETE',
-      });
+      const { error } = await supabase
+        .from('events')
+        .delete()
+        .eq('id', eventId);
         
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || 'Failed to delete event');
-      }
+      if (error) throw error;
       loadData();
     } catch (error) {
       console.error('Failed to delete event', error);
@@ -145,15 +165,45 @@ export default function AdminDashboard() {
   const handleUpdateEvent = async (formData: FormData) => {
     if (!editingEvent) return;
     try {
-      const res = await fetch(`/api/events/${editingEvent.id}`, {
-        method: 'PUT',
-        body: formData,
-      });
-
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || 'Failed to update event');
+      let image_url = editingEvent.image_url;
+      const imageFile = formData.get('image') as File;
+      
+      if (imageFile) {
+        const fileExt = imageFile.name.split('.').pop();
+        const fileName = `${Math.random()}.${fileExt}`;
+        const filePath = `${editingEvent.user_id}/${fileName}`;
+        
+        const { error: uploadError } = await supabase.storage
+          .from('events')
+          .upload(filePath, imageFile);
+          
+        if (uploadError) throw uploadError;
+        
+        const { data: { publicUrl } } = supabase.storage
+          .from('events')
+          .getPublicUrl(filePath);
+          
+        image_url = publicUrl;
       }
+
+      const updates = {
+        title: formData.get('title') as string,
+        description: formData.get('description') as string,
+        location: formData.get('location') as string,
+        start_time: formData.get('start_time') as string,
+        end_time: formData.get('end_time') as string,
+        color: formData.get('color') as string,
+        button_text: formData.get('button_text') as string,
+        button_link: formData.get('button_link') as string,
+        image_url: image_url,
+      };
+
+      const { error } = await supabase
+        .from('events')
+        .update(updates)
+        .eq('id', editingEvent.id);
+
+      if (error) throw error;
 
       setIsEventModalOpen(false);
       setEditingEvent(null);
@@ -278,7 +328,7 @@ export default function AdminDashboard() {
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleDeleteUser(user.id);
+                          handleDeleteUserClick(user);
                         }}
                         className="ml-1 text-gray-400 hover:text-red-600 p-1"
                         title="Löschen"
@@ -318,7 +368,7 @@ export default function AdminDashboard() {
                         <h3 className="text-lg font-medium text-gray-900 truncate">{event.title}</h3>
                         <div className="mt-1 flex items-center text-sm text-gray-500">
                           <span className="truncate mr-4">
-                            Erstellt von: <span className="font-medium text-gray-700">{event.creator_name || 'Unbekannt'}</span>
+                            Erstellt von: <span className="font-medium text-gray-700">{event.profiles?.username || 'Unbekannt'}</span>
                           </span>
                           <span>
                             {format(new Date(event.start_time), 'PPP', { locale: de })}
@@ -362,6 +412,13 @@ export default function AdminDashboard() {
         onClose={() => setIsEventModalOpen(false)}
         onSubmit={handleUpdateEvent}
         initialData={editingEvent}
+      />
+
+      <DeleteUserModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        onConfirm={confirmDeleteUser}
+        username={userToDelete?.username || ''}
       />
     </div>
   );
