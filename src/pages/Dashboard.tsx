@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import { Plus, Edit2, Trash2, Calendar, MapPin, Clock } from 'lucide-react';
 import { format } from 'date-fns';
@@ -14,7 +13,7 @@ interface Event {
   location: string;
   start_time: string;
   end_time: string;
-  user_id: string; // Changed to string for UUID
+  user_id: number;
   image_url?: string;
   color?: string;
   button_text?: string;
@@ -31,13 +30,9 @@ export default function Dashboard() {
   const loadEvents = async () => {
     if (!user) return;
     try {
-      const { data, error } = await supabase
-        .from('events')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('start_time', { ascending: true });
-        
-      if (error) throw error;
+      const res = await fetch('/api/events/me');
+      if (!res.ok) throw new Error('Failed to load events');
+      const data = await res.json();
       setEvents(data || []);
     } catch (error) {
       console.error('Failed to load events', error);
@@ -53,47 +48,14 @@ export default function Dashboard() {
   const handleCreate = async (formData: FormData) => {
     if (!user) return;
     try {
-      let image_url = '';
-      const imageFile = formData.get('image') as File;
-      
-      if (imageFile) {
-        const fileExt = imageFile.name.split('.').pop();
-        const fileName = `${Math.random()}.${fileExt}`;
-        const filePath = `${user.id}/${fileName}`;
-        
-        const { error: uploadError } = await supabase.storage
-          .from('events')
-          .upload(filePath, imageFile);
-          
-        if (uploadError) {
-          console.error('Storage upload error:', uploadError);
-          throw new Error(`Bild-Upload fehlgeschlagen: ${uploadError.message}`);
-        }
-        
-        const { data: { publicUrl } } = supabase.storage
-          .from('events')
-          .getPublicUrl(filePath);
-          
-        image_url = publicUrl;
-      }
+      const res = await fetch('/api/events', {
+        method: 'POST',
+        body: formData,
+      });
 
-      const newEvent = {
-        user_id: user.id,
-        title: formData.get('title') as string,
-        description: formData.get('description') as string,
-        location: formData.get('location') as string,
-        start_time: formData.get('start_time') as string,
-        end_time: formData.get('end_time') as string,
-        color: formData.get('color') as string,
-        button_text: formData.get('button_text') as string,
-        button_link: formData.get('button_link') as string,
-        image_url: image_url || undefined,
-      };
-
-      const { error: dbError } = await supabase.from('events').insert([newEvent]);
-      if (dbError) {
-        console.error('Database insert error:', dbError);
-        throw new Error(`Datenbank-Fehler: ${dbError.message}`);
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Fehler beim Erstellen der Veranstaltung.');
       }
 
       setIsModalOpen(false);
@@ -107,63 +69,36 @@ export default function Dashboard() {
   const handleUpdate = async (formData: FormData) => {
     if (!editingEvent || !user) return;
     try {
-      let image_url = editingEvent.image_url;
-      const imageFile = formData.get('image') as File;
-      
-      if (imageFile) {
-        const fileExt = imageFile.name.split('.').pop();
-        const fileName = `${Math.random()}.${fileExt}`;
-        const filePath = `${user.id}/${fileName}`;
-        
-        const { error: uploadError } = await supabase.storage
-          .from('events')
-          .upload(filePath, imageFile);
-          
-        if (uploadError) throw uploadError;
-        
-        const { data: { publicUrl } } = supabase.storage
-          .from('events')
-          .getPublicUrl(filePath);
-          
-        image_url = publicUrl;
+      const res = await fetch(`/api/events/${editingEvent.id}`, {
+        method: 'PUT',
+        body: formData,
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Failed to update event');
       }
-
-      const updates = {
-        title: formData.get('title') as string,
-        description: formData.get('description') as string,
-        location: formData.get('location') as string,
-        start_time: formData.get('start_time') as string,
-        end_time: formData.get('end_time') as string,
-        color: formData.get('color') as string,
-        button_text: formData.get('button_text') as string,
-        button_link: formData.get('button_link') as string,
-        image_url: image_url,
-      };
-
-      const { error } = await supabase
-        .from('events')
-        .update(updates)
-        .eq('id', editingEvent.id);
-        
-      if (error) throw error;
 
       setIsModalOpen(false);
       setEditingEvent(null);
       loadEvents();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to update event', error);
+      alert(error.message);
     }
   };
 
   const handleDelete = async (id: number) => {
     if (!confirm('Sind Sie sicher, dass Sie diese Veranstaltung löschen möchten?')) return;
     try {
-      const { error } = await supabase
-        .from('events')
-        .delete()
-        .eq('id', id);
+      const res = await fetch(`/api/events/${id}`, {
+        method: 'DELETE',
+      });
         
-      if (error) throw error;
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Failed to delete event');
+      }
       loadEvents();
     } catch (error) {
       console.error('Failed to delete event', error);

@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import { supabase } from '../lib/supabase';
 import { format } from 'date-fns';
 import { de } from 'date-fns/locale';
 import { MapPin, Clock, LayoutGrid, List } from 'lucide-react';
@@ -14,12 +13,12 @@ interface Event {
   location: string;
   start_time: string;
   end_time: string;
-  user_id: string;
+  user_id: number;
   image_url?: string;
   color?: string;
   button_text?: string;
   button_link?: string;
-  profiles?: { username: string }; // Joined profile data
+  creator_name?: string;
 }
 
 const CARD_STYLES = [
@@ -51,12 +50,9 @@ export default function Home() {
   useEffect(() => {
     const fetchEvents = async () => {
       try {
-        const { data, error } = await supabase
-          .from('events')
-          .select('*, profiles(username)')
-          .order('start_time', { ascending: true });
-
-        if (error) throw error;
+        const res = await fetch('/api/events');
+        if (!res.ok) throw new Error('Failed to fetch events');
+        const data = await res.json();
         setEvents(data || []);
       } catch (error) {
         console.error('Error fetching events:', error);
@@ -133,7 +129,7 @@ export default function Home() {
           // Map profile username to creator_name for display
           const displayEvent = {
             ...event,
-            creator_name: event.profiles?.username || 'Unbekannt',
+            creator_name: event.creator_name || 'Unbekannt',
             color: EVENT_COLOR // Override color for modal
           };
 

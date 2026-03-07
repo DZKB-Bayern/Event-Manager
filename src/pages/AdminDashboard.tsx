@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import { Trash2, User, Calendar, Search, Edit2 } from 'lucide-react';
 import { format } from 'date-fns';
@@ -8,7 +7,7 @@ import UserModal from '../components/UserModal';
 import EventModal from '../components/EventModal';
 
 interface Profile {
-  id: string;
+  id: number;
   username: string;
   role: string;
   created_at: string;
@@ -21,19 +20,19 @@ interface Event {
   location: string;
   start_time: string;
   end_time: string;
-  user_id: string;
+  user_id: number;
   image_url?: string;
   color?: string;
   button_text?: string;
   button_link?: string;
-  profiles?: { username: string };
+  creator_name?: string;
 }
 
 export default function AdminDashboard() {
   const { isAdmin, loading: authLoading } = useAuth();
   const [users, setUsers] = useState<Profile[]>([]);
   const [events, setEvents] = useState<Event[]>([]);
-  const [selectedUser, setSelectedUser] = useState<string | null>(null);
+  const [selectedUser, setSelectedUser] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -52,23 +51,17 @@ export default function AdminDashboard() {
   const loadData = async () => {
     setLoading(true);
     try {
-      // Fetch profiles
-      const { data: profiles, error: profilesError } = await supabase
-        .from('profiles')
-        .select('*')
-        .order('created_at', { ascending: false });
-      
-      if (profilesError) throw profilesError;
-      setUsers(profiles || []);
+      // Fetch users
+      const usersRes = await fetch('/api/admin/users');
+      if (!usersRes.ok) throw new Error('Failed to fetch users');
+      const usersData = await usersRes.json();
+      setUsers(usersData || []);
 
       // Fetch events
-      const { data: allEvents, error: eventsError } = await supabase
-        .from('events')
-        .select('*, profiles(username)')
-        .order('start_time', { ascending: false });
-
-      if (eventsError) throw eventsError;
-      setEvents(allEvents || []);
+      const eventsRes = await fetch('/api/events');
+      if (!eventsRes.ok) throw new Error('Failed to fetch events');
+      const eventsData = await eventsRes.json();
+      setEvents(eventsData || []);
       
     } catch (error) {
       console.error('Failed to load admin data', error);
@@ -77,15 +70,17 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleDeleteUser = async (userId: string) => {
+  const handleDeleteUser = async (userId: number) => {
     if (!confirm('Sind Sie sicher? Der Benutzer und alle seine Daten werden unwiderruflich gelöscht.')) return;
     try {
-      // Call the Edge Function to delete the user from auth.users
-      const { error } = await supabase.functions.invoke('delete-user', {
-        body: { user_id: userId }
+      const res = await fetch(`/api/admin/users/${userId}`, {
+        method: 'DELETE',
       });
 
-      if (error) throw error;
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Fehler beim Löschen des Benutzers');
+      }
 
       // Refresh the list
       loadData();
@@ -103,12 +98,18 @@ export default function AdminDashboard() {
   const handleUpdateUser = async (userData: { username: string; role: string }) => {
     if (!editingUser) return;
     try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ username: userData.username, role: userData.role })
-        .eq('id', editingUser.id);
+      const res = await fetch(`/api/admin/users/${editingUser.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(userData),
+      });
 
-      if (error) throw error;
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Failed to update user');
+      }
 
       setIsUserModalOpen(false);
       setEditingUser(null);
@@ -122,12 +123,14 @@ export default function AdminDashboard() {
   const handleDeleteEvent = async (eventId: number) => {
     if (!confirm('Veranstaltung wirklich löschen?')) return;
     try {
-      const { error } = await supabase
-        .from('events')
-        .delete()
-        .eq('id', eventId);
+      const res = await fetch(`/api/admin/events/${eventId}`, {
+        method: 'DELETE',
+      });
         
-      if (error) throw error;
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Failed to delete event');
+      }
       loadData();
     } catch (error) {
       console.error('Failed to delete event', error);
@@ -142,45 +145,15 @@ export default function AdminDashboard() {
   const handleUpdateEvent = async (formData: FormData) => {
     if (!editingEvent) return;
     try {
-      let image_url = editingEvent.image_url;
-      const imageFile = formData.get('image') as File;
-      
-      if (imageFile) {
-        const fileExt = imageFile.name.split('.').pop();
-        const fileName = `${Math.random()}.${fileExt}`;
-        const filePath = `${editingEvent.user_id}/${fileName}`;
-        
-        const { error: uploadError } = await supabase.storage
-          .from('events')
-          .upload(filePath, imageFile);
-          
-        if (uploadError) throw uploadError;
-        
-        const { data: { publicUrl } } = supabase.storage
-          .from('events')
-          .getPublicUrl(filePath);
-          
-        image_url = publicUrl;
+      const res = await fetch(`/api/events/${editingEvent.id}`, {
+        method: 'PUT',
+        body: formData,
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Failed to update event');
       }
-
-      const updates = {
-        title: formData.get('title') as string,
-        description: formData.get('description') as string,
-        location: formData.get('location') as string,
-        start_time: formData.get('start_time') as string,
-        end_time: formData.get('end_time') as string,
-        color: formData.get('color') as string,
-        button_text: formData.get('button_text') as string,
-        button_link: formData.get('button_link') as string,
-        image_url: image_url,
-      };
-
-      const { error } = await supabase
-        .from('events')
-        .update(updates)
-        .eq('id', editingEvent.id);
-
-      if (error) throw error;
 
       setIsEventModalOpen(false);
       setEditingEvent(null);
@@ -345,7 +318,7 @@ export default function AdminDashboard() {
                         <h3 className="text-lg font-medium text-gray-900 truncate">{event.title}</h3>
                         <div className="mt-1 flex items-center text-sm text-gray-500">
                           <span className="truncate mr-4">
-                            Erstellt von: <span className="font-medium text-gray-700">{event.profiles?.username || 'Unbekannt'}</span>
+                            Erstellt von: <span className="font-medium text-gray-700">{event.creator_name || 'Unbekannt'}</span>
                           </span>
                           <span>
                             {format(new Date(event.start_time), 'PPP', { locale: de })}

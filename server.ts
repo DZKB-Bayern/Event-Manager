@@ -45,6 +45,7 @@ db.exec(`
   CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     username TEXT UNIQUE NOT NULL,
+    email TEXT UNIQUE,
     password_hash TEXT NOT NULL,
     role TEXT DEFAULT 'member',
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
@@ -66,6 +67,13 @@ db.exec(`
 // Try to add role column if it doesn't exist (migration for existing db)
 try {
   db.exec("ALTER TABLE users ADD COLUMN role TEXT DEFAULT 'member'");
+} catch (e) {
+  // Column likely already exists
+}
+
+// Try to add email column if it doesn't exist
+try {
+  db.exec("ALTER TABLE users ADD COLUMN email TEXT UNIQUE");
 } catch (e) {
   // Column likely already exists
 }
@@ -106,6 +114,7 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 interface User {
   id: number;
   username: string;
+  email?: string;
   role: string;
 }
 
@@ -144,10 +153,10 @@ async function seedDemoUsers() {
     const hashedPassword = await bcrypt.hash('password', 10);
     
     // Create Admin
-    db.prepare('INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)').run('admin', hashedPassword, 'admin');
+    db.prepare('INSERT INTO users (username, email, password_hash, role) VALUES (?, ?, ?, ?)').run('admin', 'admin@example.com', hashedPassword, 'admin');
     
     // Create Member
-    db.prepare('INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)').run('member', hashedPassword, 'member');
+    db.prepare('INSERT INTO users (username, email, password_hash, role) VALUES (?, ?, ?, ?)').run('member', 'member@example.com', hashedPassword, 'member');
     
     console.log('Demo users created: admin/password, member/password');
   }
@@ -159,7 +168,7 @@ seedDemoUsers();
 
 // Auth: Register
 app.post('/api/auth/register', async (req, res) => {
-  const { username, password } = req.body;
+  const { username, email, password } = req.body;
   if (!username || !password) return res.status(400).json({ error: 'Username and password required' });
 
   try {
@@ -168,17 +177,19 @@ app.post('/api/auth/register', async (req, res) => {
     const userCount = db.prepare('SELECT COUNT(*) as count FROM users').get() as any;
     const role = userCount.count === 0 ? 'admin' : 'member';
 
-    const stmt = db.prepare('INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)');
-    const result = stmt.run(username, hashedPassword, role);
+    const stmt = db.prepare('INSERT INTO users (username, email, password_hash, role) VALUES (?, ?, ?, ?)');
+    const result = stmt.run(username, email, hashedPassword, role);
     
-    const user = { id: Number(result.lastInsertRowid), username, role };
-    const token = jwt.sign(user, JWT_SECRET, { expiresIn: '24h' });
+    const user = { id: Number(result.lastInsertRowid), username, email, role };
     
-    res.cookie('token', token, { httpOnly: true, sameSite: 'none', secure: true });
-    res.json({ user });
+    // Do NOT automatically login after registration, as per user request for email confirmation flow
+    // const token = jwt.sign(user, JWT_SECRET, { expiresIn: '24h' });
+    // res.cookie('token', token, { httpOnly: true, sameSite: 'none', secure: true });
+    
+    res.json({ message: 'Registration successful. Please confirm your email.', user });
   } catch (error: any) {
     if (error.code === 'SQLITE_CONSTRAINT_UNIQUE') {
-      return res.status(400).json({ error: 'Username already exists' });
+      return res.status(400).json({ error: 'Username or email already exists' });
     }
     res.status(500).json({ error: 'Internal server error' });
   }
@@ -186,19 +197,27 @@ app.post('/api/auth/register', async (req, res) => {
 
 // Auth: Login
 app.post('/api/auth/login', async (req, res) => {
-  const { username, password } = req.body;
-  if (!username || !password) return res.status(400).json({ error: 'Username and password required' });
+  const { username, email, password } = req.body;
+  if ((!username && !email) || !password) return res.status(400).json({ error: 'Username/Email and password required' });
 
-  const stmt = db.prepare('SELECT * FROM users WHERE username = ?');
-  const user = stmt.get(username) as any;
+  let user: any;
+  if (email) {
+    const stmt = db.prepare('SELECT * FROM users WHERE email = ?');
+    user = stmt.get(email);
+  } 
+  
+  if (!user && username) {
+    const stmt = db.prepare('SELECT * FROM users WHERE username = ?');
+    user = stmt.get(username);
+  }
 
   if (!user || !(await bcrypt.compare(password, user.password_hash))) {
     return res.status(401).json({ error: 'Invalid credentials' });
   }
 
-  const token = jwt.sign({ id: user.id, username: user.username, role: user.role }, JWT_SECRET, { expiresIn: '24h' });
+  const token = jwt.sign({ id: user.id, username: user.username, email: user.email, role: user.role }, JWT_SECRET, { expiresIn: '24h' });
   res.cookie('token', token, { httpOnly: true, sameSite: 'none', secure: true });
-  res.json({ user: { id: user.id, username: user.username, role: user.role } });
+  res.json({ user: { id: user.id, username: user.username, email: user.email, role: user.role } });
 });
 
 // Auth: Logout
