@@ -6,7 +6,6 @@ import { format } from 'date-fns';
 import { de } from 'date-fns/locale';
 import UserModal from '../components/UserModal';
 import EventModal from '../components/EventModal';
-import DeleteUserModal from '../components/DeleteUserModal';
 
 interface Profile {
   id: string;
@@ -44,10 +43,6 @@ export default function AdminDashboard() {
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
   const [isEventModalOpen, setIsEventModalOpen] = useState(false);
 
-  // Delete states
-  const [userToDelete, setUserToDelete] = useState<Profile | null>(null);
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-
   useEffect(() => {
     if (isAdmin) {
       loadData();
@@ -82,39 +77,21 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleDeleteUserClick = (user: Profile) => {
-    setUserToDelete(user);
-    setIsDeleteModalOpen(true);
-  };
-
-  const confirmDeleteUser = async () => {
-    if (!userToDelete) return;
-    
+  const handleDeleteUser = async (userId: string) => {
+    if (!confirm('Sind Sie sicher? Der Benutzer und alle seine Daten werden unwiderruflich gelöscht.')) return;
     try {
       // Call the Edge Function to delete the user from auth.users
       const { error } = await supabase.functions.invoke('delete-user', {
-        body: { user_id: userToDelete.id }
+        body: { user_id: userId }
       });
 
       if (error) throw error;
 
       // Refresh the list
       loadData();
-      setIsDeleteModalOpen(false);
-      setUserToDelete(null);
     } catch (error: any) {
-      console.error('Failed to delete user:', error);
-      // Try to extract a meaningful error message
-      let errorMessage = 'Fehler beim Löschen des Benutzers';
-      if (error.message) {
-        errorMessage = error.message;
-      } else if (typeof error === 'string') {
-        errorMessage = error;
-      } else if (error.error_description) {
-        errorMessage = error.error_description;
-      }
-      
-      alert(errorMessage);
+      console.error('Failed to delete user', error);
+      alert(error.message || 'Fehler beim Löschen des Benutzers');
     }
   };
 
@@ -328,7 +305,7 @@ export default function AdminDashboard() {
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleDeleteUserClick(user);
+                          handleDeleteUser(user.id);
                         }}
                         className="ml-1 text-gray-400 hover:text-red-600 p-1"
                         title="Löschen"
@@ -412,13 +389,6 @@ export default function AdminDashboard() {
         onClose={() => setIsEventModalOpen(false)}
         onSubmit={handleUpdateEvent}
         initialData={editingEvent}
-      />
-
-      <DeleteUserModal
-        isOpen={isDeleteModalOpen}
-        onClose={() => setIsDeleteModalOpen(false)}
-        onConfirm={confirmDeleteUser}
-        username={userToDelete?.username || ''}
       />
     </div>
   );

@@ -7,22 +7,16 @@ const corsHeaders = {
 }
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
 
   try {
-    const authHeader = req.headers.get('Authorization')
-    if (!authHeader) {
-      throw new Error('Missing Authorization header')
-    }
-
     // 1. Create client with user's auth context to verify admin status
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      { global: { headers: { Authorization: authHeader } } }
+      { global: { headers: { Authorization: req.headers.get('Authorization')! } } }
     )
 
     // Check if caller is authenticated
@@ -41,26 +35,13 @@ serve(async (req) => {
     }
 
     // 2. Parse request body
-    let user_id;
-    try {
-      const body = await req.json()
-      user_id = body.user_id
-    } catch (e) {
-      throw new Error('Invalid request body')
-    }
-
+    const { user_id } = await req.json()
     if (!user_id) throw new Error('User ID required')
 
     // 3. Delete user using Service Role Key (Admin privileges)
-    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
-    if (!serviceRoleKey) {
-      console.error('Missing SUPABASE_SERVICE_ROLE_KEY')
-      throw new Error('Server configuration error')
-    }
-
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      serviceRoleKey
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
     const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(user_id)
@@ -72,7 +53,6 @@ serve(async (req) => {
     })
 
   } catch (error) {
-    console.error('Error in delete-user function:', error)
     return new Response(JSON.stringify({ error: error.message }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 400,
