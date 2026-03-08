@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { loginWithWebling } from '../lib/api';
+import { useAuth } from '../context/AuthContext';
 
 /**
  * This page handles logins coming from Webling. It reads the `member` query
@@ -13,27 +14,37 @@ import { loginWithWebling } from '../lib/api';
 export default function WeblingLogin() {
   const [params] = useSearchParams();
   const navigate = useNavigate();
+  const { refreshUser } = useAuth();
 
   useEffect(() => {
     const memberId = params.get('member');
     if (!memberId) {
-      // If no member is provided redirect to the normal login page
-      navigate('/login');
+      navigate('/');
       return;
     }
 
-    // Attempt to authenticate using the Webling member ID. On success
-    // navigate to the dashboard, otherwise back to the home page.
-    loginWithWebling(memberId)
-      .then(() => {
-        navigate('/dashboard');
-      })
-      .catch(() => {
-        // On failure redirect to the home page instead of /login,
-        // because the standalone login page has been removed.
-        navigate('/');
-      });
-  }, [params, navigate]);
+    let cancelled = false;
+
+    const runLogin = async () => {
+      try {
+        await loginWithWebling(memberId);
+        await refreshUser();
+        if (!cancelled) {
+          navigate('/dashboard', { replace: true });
+        }
+      } catch {
+        if (!cancelled) {
+          navigate('/', { replace: true });
+        }
+      }
+    };
+
+    runLogin();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [params, navigate, refreshUser]);
 
   return <div className="p-8 text-center">Login über Webling...</div>;
 }

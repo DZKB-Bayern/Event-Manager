@@ -48,7 +48,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Always fetch the current user from our own backend. If a valid JWT
       // cookie is present this will return `{ user: {...} }`. Otherwise the
       // request will respond with a 401 and user will remain null.
-      const resp = await fetch('/api/auth/me');
+      const resp = await fetch('/api/auth/me', {
+        credentials: 'include',
+        cache: 'no-store',
+      });
       if (resp.ok) {
         const data = await resp.json();
         if (data && data.user) {
@@ -84,7 +87,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signOut = async () => {
     try {
       // Request our backend to clear the authentication cookie.
-      await fetch('/api/auth/logout', { method: 'POST' });
+      await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
       setUser(null);
     } catch (error) {
       console.error('Error signing out:', error);

@@ -18,6 +18,7 @@ export async function fetcher(url: string, options: RequestInit = {}) {
   const res = await fetch(url, {
     ...options,
     headers,
+    credentials: 'include',
   });
 
   if (!res.ok) {
@@ -43,6 +44,7 @@ export async function loginWithWebling(member: string) {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({ member_id: member }),
+    credentials: 'include',
   });
   if (!res.ok) {
     const error = await res.json().catch(() => ({ error: 'Webling Login fehlgeschlagen' }));

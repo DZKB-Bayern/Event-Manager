@@ -9,6 +9,7 @@ import jwt from 'jsonwebtoken';
  * is rejected with a 401.
  */
 export default function handler(req: VercelRequest, res: VercelResponse) {
+  res.setHeader('Cache-Control', 'no-store');
   const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-key-change-me';
   try {
     const cookie = req.headers.cookie || '';

@@ -16,6 +16,7 @@ import jwt from 'jsonwebtoken';
  * On success, the response will include `{ user: { id, username, email, role } }`.
  */
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  res.setHeader('Cache-Control', 'no-store');
   if (req.method !== 'POST') {
     res.status(405).json({ error: 'Method not allowed' });
     return;
@@ -46,13 +47,44 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     const member = await response.json();
-    // Extract fields from the Webling response. Field names may differ across
-    // organisations; fall back to sensible defaults.
+    const props = member.properties || {};
     const id: string = String(member.id ?? member.memberId ?? member.memberID ?? member_id);
-    const firstname: string = member.firstname || member.fields?.firstname || '';
-    const lastname: string = member.lastname || member.fields?.lastname || '';
-    const email: string | undefined = member.email || member.fields?.email || undefined;
-    const username: string = `${firstname} ${lastname}`.trim() || email || `member-${id}`;
+    const firstname: string =
+      props.Vorname ||
+      props.vorname ||
+      member.firstname ||
+      member.firstName ||
+      member.fields?.firstname ||
+      member.fields?.firstName ||
+      member.Vorname ||
+      member.vorname ||
+      member.fields?.Vorname ||
+      member.fields?.vorname ||
+      '';
+    const lastname: string =
+      props.Name ||
+      props.name ||
+      props.Nachname ||
+      props.nachname ||
+      member.lastname ||
+      member.lastName ||
+      member.fields?.lastname ||
+      member.fields?.lastName ||
+      member.Nachname ||
+      member.nachname ||
+      member.fields?.Nachname ||
+      member.fields?.nachname ||
+      '';
+    const email: string | undefined =
+      props['E-Mail'] ||
+      props['E-mail'] ||
+      props.email ||
+      member.email ||
+      member.fields?.email ||
+      member.fields?.Email ||
+      undefined;
+    const fullName = `${firstname} ${lastname}`.trim();
+    const username: string = fullName || email || `member-${id}`;
     const role = 'member';
 
     // Build a payload for the JWT. We include id, username, email and role.
@@ -61,17 +93,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Sign the JWT. The expiration is set to 24 hours; adjust as needed.
     const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '24h' });
 
-    // Construct a secure, HTTP‑only cookie. In production we set the Secure flag.
-    // For cross‑site logins from the Webling portal, the cookie must use
-    // SameSite=None and Secure. Without this the browser will reject
-    // the authentication cookie and /api/auth/me will return 401.
+    // Top-level navigation from the portal works most reliably with Lax.
     const cookieParts = [
       `token=${token}`,
       'Path=/',
       'HttpOnly',
-      // Explicitly set SameSite=None so the cookie is accepted on cross‑site POST
-      'SameSite=None',
-      // Always set Secure when SameSite=None (required by browsers)
+      'SameSite=Lax',
       'Secure'
     ];
     res.setHeader('Set-Cookie', cookieParts.join('; '));

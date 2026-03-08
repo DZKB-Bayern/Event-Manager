@@ -10,11 +10,9 @@ export default function handler(req: VercelRequest, res: VercelResponse) {
     'Path=/',
     'HttpOnly',
     'SameSite=Lax',
-    'Expires=Thu, 01 Jan 1970 00:00:00 GMT'
+    'Expires=Thu, 01 Jan 1970 00:00:00 GMT',
+    'Secure'
   ];
-  if (process.env.NODE_ENV === 'production') {
-    cookieParts.push('Secure');
-  }
   res.setHeader('Set-Cookie', cookieParts.join('; '));
   res.status(200).json({ message: 'Logged out' });
 }
