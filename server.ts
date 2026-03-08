@@ -9,6 +9,9 @@ import { fileURLToPath } from 'url';
 import multer from 'multer';
 import fs from 'fs';
 import { Resend } from 'resend';
+// Node 18 and later provide a global fetch API. If running in an older
+// environment you may need to install a fetch polyfill such as
+// `node-fetch`. Here we rely on the global implementation.
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const db = new Database('events.db');
@@ -35,6 +38,13 @@ const upload = multer({ storage: storage });
 const app = express();
 const PORT = 3000;
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-key-change-in-prod';
+
+// Configuration for Webling integration. WEBLING_API_KEY should be set in
+// your environment (.env file or deployment platform). WEBLING_API_URL
+// optionally specifies the base URL for your Webling instance (without
+// trailing slash). Defaults to the example dzkbbayern API.
+const WEBLING_API_KEY = process.env.WEBLING_API_KEY || '';
+const WEBLING_API_URL = process.env.WEBLING_API_URL || 'https://dzkbbayern.webling.eu/api/1';
 
 // Middleware
 app.use(express.json());
@@ -108,6 +118,81 @@ try {
 
 // Serve uploads
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+// ----------------------------------------------------------------------------
+// Webling Login Endpoint
+//
+// This endpoint allows users to authenticate using their Webling member ID.
+// Clients should issue a POST request to `/api/webling-login` with
+// `{ member_id: string }` in the request body. The server will call the
+// Webling API to fetch the member record. If found, the user will be
+// created or updated in the local SQLite database. A JWT cookie is then
+// returned to authenticate subsequent requests. On success the response
+// contains `{ user: {...} }` mirroring the payload used elsewhere in the
+// application.
+app.post('/api/webling-login', async (req: Request, res: Response) => {
+  const { member_id } = req.body || {};
+  if (!member_id) {
+    return res.status(400).json({ error: 'member_id ist erforderlich' });
+  }
+  if (!WEBLING_API_KEY) {
+    return res.status(500).json({ error: 'WEBLING_API_KEY is not configured' });
+  }
+  try {
+    // Request member details from Webling. We include the API key as a
+    // query parameter. Alternatively you could set it via HTTP Basic auth
+    // or another header depending on your configuration.
+    const response = await fetch(`${WEBLING_API_URL}/member/${member_id}?apikey=${WEBLING_API_KEY}`);
+    if (!response.ok) {
+      return res.status(401).json({ error: 'Mitglied nicht gefunden' });
+    }
+    const member = await response.json();
+    // Webling returns objects in the form { id: number, fields: {...}, ... }
+    // The actual shape depends on your Webling configuration. We map
+    // firstname, lastname and email if present, falling back to sensible
+    // defaults. You may need to adjust these field names to match your
+    // Webling data model.
+    const memberId = member.id;
+    const firstname = member.firstname || member.fields?.firstname || '';
+    const lastname = member.lastname || member.fields?.lastname || '';
+    const email = member.email || member.fields?.email || null;
+    const username = `${firstname} ${lastname}`.trim() || email || `member-${memberId}`;
+
+    // Check if this member already exists in our users table. We use the
+    // Webling member ID as our primary key. If you have migrated your
+    // database to include a webling_member_id column you should instead
+    // look up the user by that column and allow the SQLite autoincremented
+    // id to remain separate. Here we assume the Webling ID can serve as
+    // the primary key. Adjust as necessary for your schema.
+    let user: any = db.prepare('SELECT id, username, email, role FROM users WHERE id = ?').get(memberId);
+    if (!user) {
+      // Insert a new user. We do not set a password because the user will
+      // authenticate via Webling. Role defaults to member.
+      const insert = db.prepare('INSERT OR IGNORE INTO users (id, username, email, password_hash, role) VALUES (?, ?, ?, ?, ?)');
+      insert.run(memberId, username, email, '', 'member');
+      user = { id: memberId, username, email, role: 'member' };
+    } else {
+      // Update username/email if they differ from the current values
+      if (user.username !== username || user.email !== email) {
+        db.prepare('UPDATE users SET username = ?, email = ? WHERE id = ?').run(username, email, memberId);
+        user.username = username;
+        user.email = email;
+      }
+    }
+    // Create JWT payload. We include id, username, email and role. The
+    // expiration is set to 24 hours but can be adjusted.
+    const payload = { id: user.id, username: user.username, email: user.email, role: user.role };
+    const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '24h' });
+    // Set the cookie. Note: sameSite: 'none' and secure: true are required for
+    // cross-site requests if the app is embedded in another domain. Adjust
+    // these flags according to your deployment (e.g. use secure only in prod).
+    res.cookie('token', token, { httpOnly: true, sameSite: 'none', secure: process.env.NODE_ENV === 'production' });
+    return res.json({ user: payload });
+  } catch (err) {
+    console.error('Webling login error:', err);
+    return res.status(500).json({ error: 'Webling Login Fehler' });
+  }
+});
 
 
 // Types

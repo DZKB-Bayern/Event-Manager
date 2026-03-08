@@ -27,3 +27,26 @@ export async function fetcher(url: string, options: RequestInit = {}) {
 
   return res.json();
 }
+
+/**
+ * Perform a login via Webling. This function posts the provided member
+ * identifier to the `/api/webling-login` endpoint. If authentication
+ * succeeds the backend will set an HTTP-only cookie containing a JWT and
+ * return the authenticated user. On failure an exception is thrown.
+ *
+ * @param member The numeric member id from Webling.
+ */
+export async function loginWithWebling(member: string) {
+  const res = await fetch('/api/webling-login', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ member_id: member }),
+  });
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({ error: 'Webling Login fehlgeschlagen' }));
+    throw new Error(error.error || res.statusText);
+  }
+  return res.json();
+}

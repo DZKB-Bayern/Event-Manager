@@ -12,6 +12,7 @@ import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import AdminDashboard from './pages/AdminDashboard';
 import ProtectedRoute from './components/ProtectedRoute';
+import WeblingLogin from './pages/WeblingLogin';
 
 function AppContent() {
   const location = useLocation();
@@ -35,6 +36,9 @@ function AppContent() {
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        {/* Route used for Webling SSO login. This route is not protected because
+            it is accessed before a session exists. */}
+        <Route path="/webling-login" element={<WeblingLogin />} />
         <Route element={<ProtectedRoute />}>
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/admin" element={<AdminDashboard />} />
