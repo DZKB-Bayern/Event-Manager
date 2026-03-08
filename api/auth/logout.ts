@@ -9,7 +9,7 @@ export default function handler(req: VercelRequest, res: VercelResponse) {
     'token=',
     'Path=/',
     'HttpOnly',
-    'SameSite=Lax',
+    'SameSite=None',
     'Expires=Thu, 01 Jan 1970 00:00:00 GMT',
     'Secure'
   ];

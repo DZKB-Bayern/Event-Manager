@@ -28,6 +28,9 @@ export default function WeblingLogin() {
     const runLogin = async () => {
       try {
         await loginWithWebling(memberId);
+        // Give the browser a brief moment to persist the auth cookie before
+        // asking the app to resolve the current user.
+        await new Promise((resolve) => window.setTimeout(resolve, 200));
         await refreshUser();
         if (!cancelled) {
           navigate('/dashboard', { replace: true });
