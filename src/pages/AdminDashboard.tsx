@@ -109,7 +109,7 @@ export default function AdminDashboard() {
       if (imageFile) {
         const fileExt = imageFile.name.split('.').pop();
         const fileName = `${Math.random()}.${fileExt}`;
-        const filePath = `${editingEvent.user_id}/${fileName}`;
+        const filePath = `${editingEvent.webling_member_id}/${fileName}`;
         
         const { error: uploadError } = await supabase.storage
           .from('events')
@@ -153,7 +153,7 @@ export default function AdminDashboard() {
   };
 
   const filteredEvents = selectedUser
-    ? events.filter(e => e.user_id === selectedUser)
+    ? events.filter(e => e.webling_member_id === selectedUser)
     : events;
 
   const filteredUsers = users.filter(user => 

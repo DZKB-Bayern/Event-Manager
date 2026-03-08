@@ -15,11 +15,11 @@ export default function Dashboard() {
   const loadEvents = async () => {
     if (!user) return;
     try {
-      const { data, error } = await supabase
-        .from('events')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('start_time', { ascending: true });
+    const { data, error } = await supabase
+      .from('events')
+      .select('*')
+      .eq('webling_member_id', user.id)
+      .order('start_time', { ascending: true });
         
       if (error) throw error;
       setEvents(data || []);
@@ -62,7 +62,8 @@ export default function Dashboard() {
       }
 
       const newEvent = {
-        user_id: user.id,
+        // Associate the event with the current Webling member id rather than a Supabase user id
+        webling_member_id: user.id,
         title: formData.get('title') as string,
         description: formData.get('description') as string,
         location: formData.get('location') as string,

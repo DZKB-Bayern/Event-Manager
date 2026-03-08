@@ -5,7 +5,12 @@ export interface Event {
   location: string;
   start_time: string;
   end_time: string;
-  user_id: string;
+  /**
+   * The Webling member ID associated with this event. This replaces the
+   * previous `user_id` field. All event queries should filter on this
+   * identifier rather than the Supabase user id.
+   */
+  webling_member_id: string;
   image_url?: string;
   color?: string;
   button_text?: string;
