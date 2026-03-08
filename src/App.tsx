@@ -1,0 +1,53 @@
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
+import { AuthProvider } from './context/AuthContext';
+import Navbar from './components/Navbar';
+import Home from './pages/Home';
+import Dashboard from './pages/Dashboard';
+import ProtectedRoute from './components/ProtectedRoute';
+import WeblingLogin from './pages/WeblingLogin';
+
+function AppContent() {
+  const location = useLocation();
+  const searchParams = new URLSearchParams(location.search);
+  
+  // Check for embed parameter in search query or hash
+  // We accept 'true', '1', or just 'embed' (empty string)
+  // Also check if 'embed' is present in the hash (e.g. #/?embed=true)
+  const embedParam = searchParams.get('embed');
+  const isEmbed = 
+    embedParam === 'true' || 
+    embedParam === '1' || 
+    embedParam === '' ||
+    location.hash.includes('embed=true') ||
+    location.hash.includes('embed=1');
+
+  return (
+    <div className="min-h-screen bg-white">
+      {!isEmbed && <Navbar />}
+      <Routes>
+        <Route path="/" element={<Home />} />
+        {/* Webling SSO login. This route is not protected because it is accessed before a session exists. */}
+        <Route path="/webling-login" element={<WeblingLogin />} />
+        <Route element={<ProtectedRoute />}>
+          <Route path="/dashboard" element={<Dashboard />} />
+        </Route>
+      </Routes>
+    </div>
+  );
+}
+
+export default function App() {
+  return (
+    <Router>
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
+    </Router>
+  );
+}
+
