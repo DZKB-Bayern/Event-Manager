@@ -1,31 +1,15 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
-import { Plus, Edit2, Trash2, Calendar, MapPin, Clock } from 'lucide-react';
-import { format } from 'date-fns';
-import { de } from 'date-fns/locale';
+import { Plus } from 'lucide-react';
 import EventModal from '../components/EventModal';
-import { motion } from 'motion/react';
-
-interface Event {
-  id: number;
-  title: string;
-  description: string;
-  location: string;
-  start_time: string;
-  end_time: string;
-  user_id: string; // Changed to string for UUID
-  image_url?: string;
-  color?: string;
-  button_text?: string;
-  button_link?: string;
-}
+import EventItem from '../components/EventItem';
+import { Event } from '../types';
 
 export default function Dashboard() {
   const { user } = useAuth();
   const [events, setEvents] = useState<Event[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingEvent, setEditingEvent] = useState<Event | null>(null);
   const [loading, setLoading] = useState(true);
 
   const loadEvents = async () => {
@@ -104,10 +88,10 @@ export default function Dashboard() {
     }
   };
 
-  const handleUpdate = async (formData: FormData) => {
-    if (!editingEvent || !user) return;
+  const handleUpdate = async (event: Event, formData: FormData) => {
+    if (!user) return;
     try {
-      let image_url = editingEvent.image_url;
+      let image_url = event.image_url;
       const imageFile = formData.get('image') as File;
       
       if (imageFile) {
@@ -143,12 +127,10 @@ export default function Dashboard() {
       const { error } = await supabase
         .from('events')
         .update(updates)
-        .eq('id', editingEvent.id);
+        .eq('id', event.id);
         
       if (error) throw error;
 
-      setIsModalOpen(false);
-      setEditingEvent(null);
       loadEvents();
     } catch (error) {
       console.error('Failed to update event', error);
@@ -171,12 +153,6 @@ export default function Dashboard() {
   };
 
   const openCreateModal = () => {
-    setEditingEvent(null);
-    setIsModalOpen(true);
-  };
-
-  const openEditModal = (event: Event) => {
-    setEditingEvent(event);
     setIsModalOpen(true);
   };
 
@@ -195,62 +171,18 @@ export default function Dashboard() {
         </button>
       </div>
 
-      <div className="bg-white shadow overflow-hidden sm:rounded-md">
-        <ul className="divide-y divide-gray-200">
+      <div className="space-y-4">
+        <ul className="space-y-4">
           {events.map((event) => (
-            <motion.li 
-              key={event.id}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-            >
-              <div className="px-4 py-4 sm:px-6 hover:bg-gray-50 transition duration-150 ease-in-out">
-                <div className="flex items-center justify-between">
-                  <div className="flex-1 min-w-0">
-                    <h3 className="text-lg font-medium text-primary truncate">{event.title}</h3>
-                    <div className="mt-2 flex items-center text-sm text-gray-500 sm:mt-0">
-                      <Calendar className="flex-shrink-0 mr-1.5 h-5 w-5 text-gray-400" />
-                      <p>
-                        {format(new Date(event.start_time), 'PPP', { locale: de })}
-                      </p>
-                    </div>
-                    <div className="mt-2 flex items-center text-sm text-gray-500 sm:mt-0">
-                      <Clock className="flex-shrink-0 mr-1.5 h-5 w-5 text-gray-400" />
-                      <p>
-                        {format(new Date(event.start_time), 'HH:mm')} - {format(new Date(event.end_time), 'HH:mm')}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-4">
-                    <button
-                      onClick={() => openEditModal(event)}
-                      className="text-primary hover:text-primary-hover"
-                      title="Bearbeiten"
-                    >
-                      <Edit2 className="h-5 w-5" />
-                    </button>
-                    <button
-                      onClick={() => handleDelete(event.id)}
-                      className="text-red-600 hover:text-red-900"
-                      title="Löschen"
-                    >
-                      <Trash2 className="h-5 w-5" />
-                    </button>
-                  </div>
-                </div>
-                <div className="mt-2 sm:flex sm:justify-between">
-                  <div className="sm:flex">
-                    <p className="flex items-center text-sm text-gray-500">
-                      <MapPin className="flex-shrink-0 mr-1.5 h-5 w-5 text-gray-400" />
-                      {event.location || 'Kein Ort angegeben'}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </motion.li>
+            <EventItem 
+              key={event.id} 
+              event={event} 
+              onUpdate={handleUpdate} 
+              onDelete={handleDelete} 
+            />
           ))}
           {events.length === 0 && (
-            <li className="px-4 py-8 text-center text-gray-500">
+            <li className="bg-white shadow sm:rounded-md px-4 py-8 text-center text-gray-500">
               Sie haben noch keine Veranstaltungen erstellt.
             </li>
           )}
@@ -260,8 +192,8 @@ export default function Dashboard() {
       <EventModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        onSubmit={editingEvent ? handleUpdate : handleCreate}
-        initialData={editingEvent}
+        onSubmit={handleCreate}
+        initialData={null}
       />
     </div>
   );

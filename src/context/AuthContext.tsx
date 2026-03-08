@@ -1,55 +1,82 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { supabase } from '../lib/supabase';
-import { Session, User } from '@supabase/supabase-js';
+
+interface User {
+  id: string;
+  username: string;
+  email?: string;
+  role: string;
+}
 
 interface AuthContextType {
   user: User | null;
-  session: Session | null;
-  profile: any | null;
   loading: boolean;
   isAdmin: boolean;
   signOut: () => Promise<void>;
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
-  session: null,
-  profile: null,
   loading: true,
   isAdmin: false,
   signOut: async () => {},
+  refreshUser: async () => {},
 });
 
 export const useAuth = () => useContext(AuthContext);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
-  const [profile, setProfile] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
+  const fetchUser = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      
       if (session?.user) {
-        fetchProfile(session.user.id);
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', session.user.id)
+          .single();
+          
+        if (profile) {
+          setUser({
+            id: session.user.id,
+            email: session.user.email,
+            username: profile.username,
+            role: profile.role
+          });
+        } else {
+          // Fallback if profile doesn't exist yet
+          setUser({
+            id: session.user.id,
+            email: session.user.email,
+            username: session.user.email?.split('@')[0] || 'User',
+            role: 'user'
+          });
+        }
       } else {
-        setLoading(false);
+        setUser(null);
       }
-    });
+    } catch (error) {
+      console.error('Error fetching user:', error);
+      setUser(null);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    // Listen for changes
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-      setUser(session?.user ?? null);
+  useEffect(() => {
+    fetchUser();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session?.user) {
-        fetchProfile(session.user.id);
+        // We need to fetch the profile again to get the role
+        fetchUser();
       } else {
-        setProfile(null);
+        setUser(null);
         setLoading(false);
       }
     });
@@ -57,32 +84,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
-  const fetchProfile = async (userId: string) => {
+  const signOut = async () => {
     try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .single();
-      
-      if (!error && data) {
-        setProfile(data);
-      }
+      await supabase.auth.signOut();
+      setUser(null);
     } catch (error) {
-      console.error('Error fetching profile:', error);
-    } finally {
-      setLoading(false);
+      console.error('Error signing out:', error);
     }
   };
 
-  const signOut = async () => {
-    await supabase.auth.signOut();
-  };
-
-  const isAdmin = profile?.role === 'admin';
+  const isAdmin = user?.role === 'admin';
 
   return (
-    <AuthContext.Provider value={{ user, session, profile, loading, isAdmin, signOut }}>
+    <AuthContext.Provider value={{ user, loading, isAdmin, signOut, refreshUser: fetchUser }}>
       {children}
     </AuthContext.Provider>
   );

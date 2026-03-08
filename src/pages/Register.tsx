@@ -17,7 +17,7 @@ export default function Register() {
     setLoading(true);
 
     try {
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -29,6 +29,24 @@ export default function Register() {
 
       if (error) throw error;
       
+      if (data.user) {
+        // Create profile entry
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .insert([
+            {
+              id: data.user.id,
+              username,
+              role: 'user',
+            },
+          ]);
+
+        if (profileError) {
+          console.error('Error creating profile:', profileError);
+          // Don't fail registration if profile creation fails, but log it
+        }
+      }
+
       setSuccess(true);
     } catch (err: any) {
       setError(err.message || 'Registrierung fehlgeschlagen');
@@ -93,19 +111,24 @@ export default function Register() {
           )}
           <div className="rounded-md shadow-sm -space-y-px">
             <div>
-              <label htmlFor="username" className="sr-only">
-                Benutzername
+              <label htmlFor="username" className="block text-sm font-medium text-gray-700">
+                Firmenname / Name der Hundeschule
               </label>
-              <input
-                id="username"
-                name="username"
-                type="text"
-                required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-primary focus:border-primary focus:z-10 sm:text-sm"
-                placeholder="Benutzername"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-              />
+              <div className="mt-1">
+                <input
+                  id="username"
+                  name="username"
+                  type="text"
+                  required
+                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-primary focus:border-primary sm:text-sm"
+                  placeholder="z.B. Hundeschule Müller"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                />
+              </div>
+              <p className="mt-1 text-xs text-gray-500">
+                Dieser Name wird öffentlich bei Ihren Veranstaltungen als "Veranstalter" angezeigt.
+              </p>
             </div>
             <div>
               <label htmlFor="email" className="sr-only">

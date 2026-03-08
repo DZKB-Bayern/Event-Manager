@@ -6,28 +6,7 @@ import { format } from 'date-fns';
 import { de } from 'date-fns/locale';
 import UserModal from '../components/UserModal';
 import EventModal from '../components/EventModal';
-
-interface Profile {
-  id: string;
-  username: string;
-  role: string;
-  created_at: string;
-}
-
-interface Event {
-  id: number;
-  title: string;
-  description: string;
-  location: string;
-  start_time: string;
-  end_time: string;
-  user_id: string;
-  image_url?: string;
-  color?: string;
-  button_text?: string;
-  button_link?: string;
-  profiles?: { username: string };
-}
+import { AdminEvent as Event, Profile } from '../types';
 
 export default function AdminDashboard() {
   const { isAdmin, loading: authLoading } = useAuth();
@@ -74,24 +53,6 @@ export default function AdminDashboard() {
       console.error('Failed to load admin data', error);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleDeleteUser = async (userId: string) => {
-    if (!confirm('Sind Sie sicher? Der Benutzer und alle seine Daten werden unwiderruflich gelöscht.')) return;
-    try {
-      // Call the Edge Function to delete the user from auth.users
-      const { error } = await supabase.functions.invoke('delete-user', {
-        body: { user_id: userId }
-      });
-
-      if (error) throw error;
-
-      // Refresh the list
-      loadData();
-    } catch (error: any) {
-      console.error('Failed to delete user', error);
-      alert(error.message || 'Fehler beim Löschen des Benutzers');
     }
   };
 
@@ -191,23 +152,6 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleSeedData = async () => {
-    try {
-      const response = await fetch('/api/admin/seed', {
-        method: 'POST',
-      });
-      const data = await response.json();
-      if (response.ok) {
-        alert(data.message);
-        loadData();
-      } else {
-        alert(data.error);
-      }
-    } catch (error) {
-      console.error('Seed error', error);
-    }
-  };
-
   const filteredEvents = selectedUser
     ? events.filter(e => e.user_id === selectedUser)
     : events;
@@ -223,12 +167,6 @@ export default function AdminDashboard() {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
-        <button
-          onClick={handleSeedData}
-          className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
-        >
-          Demo-Daten erstellen
-        </button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -301,16 +239,6 @@ export default function AdminDashboard() {
                         title="Bearbeiten"
                       >
                         <Edit2 className="h-4 w-4" />
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDeleteUser(user.id);
-                        }}
-                        className="ml-1 text-gray-400 hover:text-red-600 p-1"
-                        title="Löschen"
-                      >
-                        <Trash2 className="h-4 w-4" />
                       </button>
                     </div>
                   </div>

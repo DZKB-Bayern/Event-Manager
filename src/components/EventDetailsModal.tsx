@@ -1,5 +1,5 @@
 import React, { useRef } from 'react';
-import { X, MapPin, Clock } from 'lucide-react';
+import { X, MapPin, Clock, Building2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { format } from 'date-fns';
 import { de } from 'date-fns/locale';
@@ -125,6 +125,14 @@ export default function EventDetailsModal({ isOpen, onClose, event }: EventDetai
                       </div>
                     </div>
                   )}
+
+                  <div className="flex items-start">
+                    <Building2 className="w-5 h-5 text-primary mt-0.5 mr-3 shrink-0" />
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">Veranstalter</p>
+                      <p className="text-sm text-gray-600">{event.creator_name || 'Unbekannt'}</p>
+                    </div>
+                  </div>
                 </div>
               </div>
 

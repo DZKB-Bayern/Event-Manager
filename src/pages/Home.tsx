@@ -1,26 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import { supabase } from '../lib/supabase';
 import { format } from 'date-fns';
 import { de } from 'date-fns/locale';
-import { MapPin, Clock, LayoutGrid, List } from 'lucide-react';
+import { MapPin, Clock, LayoutGrid, List, Building2 } from 'lucide-react';
 import { motion } from 'motion/react';
+import { supabase } from '../lib/supabase';
 import EventDetailsModal from '../components/EventDetailsModal';
-
-interface Event {
-  id: number;
-  title: string;
-  description: string;
-  location: string;
-  start_time: string;
-  end_time: string;
-  user_id: string;
-  image_url?: string;
-  color?: string;
-  button_text?: string;
-  button_link?: string;
-  profiles?: { username: string }; // Joined profile data
-}
+import { AdminEvent as Event } from '../types';
 
 const CARD_STYLES = [
   { bg: 'bg-[#5D5333]', hex: '#5D5333', text: 'text-white', muted: 'text-white/80' }, // Olive
@@ -181,15 +167,19 @@ export default function Home() {
                     {/* Badges Row */}
                     <div className="flex flex-wrap gap-2 text-xs font-medium opacity-90">
                       <div className={`px-2.5 py-1 rounded-md flex items-center ${badgeClass}`}>
-                        <Clock className="h-3.5 w-3.5 mr-1.5 opacity-60" />
+                        <Clock className="h-3.5 w-3.5 mr-1.5 opacity-60 shrink-0" />
                         <span>{startTime} - {endTime}</span>
                       </div>
                       {event.location && (
-                        <div className={`px-2.5 py-1 rounded-md flex items-center truncate max-w-[150px] ${badgeClass}`}>
-                          <MapPin className="h-3.5 w-3.5 mr-1.5 opacity-60" />
-                          <span className="truncate">{event.location}</span>
+                        <div className={`px-2.5 py-1 rounded-md flex items-center ${badgeClass}`}>
+                          <MapPin className="h-3.5 w-3.5 mr-1.5 opacity-60 shrink-0" />
+                          <span>{event.location}</span>
                         </div>
                       )}
+                      <div className={`px-2.5 py-1 rounded-md flex items-center ${badgeClass}`}>
+                        <Building2 className="h-3.5 w-3.5 mr-1.5 opacity-60 shrink-0" />
+                        <span>Veranstalter: {displayEvent.creator_name}</span>
+                      </div>
                     </div>
 
                     <p className={`text-sm line-clamp-1 text-gray-600 hidden sm:block`}>
@@ -265,11 +255,15 @@ export default function Home() {
                       <span>{startTime} - {endTime}</span>
                     </div>
                     {event.location && (
-                      <div className="flex items-center">
-                        <MapPin className="h-4 w-4 mr-3 shrink-0 text-primary" />
-                        <span className="truncate">{event.location}</span>
+                      <div className="flex items-start">
+                        <MapPin className="h-4 w-4 mr-3 shrink-0 text-primary mt-0.5" />
+                        <span className="break-words">{event.location}</span>
                       </div>
                     )}
+                    <div className="flex items-start">
+                      <Building2 className="h-4 w-4 mr-3 shrink-0 text-primary mt-0.5" />
+                      <span className="break-words">Veranstalter: {displayEvent.creator_name}</span>
+                    </div>
                   </div>
 
                 <p className="text-sm leading-relaxed line-clamp-4 mb-6 text-gray-600">

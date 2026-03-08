@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
+import { useAuth } from '../context/AuthContext';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -8,6 +9,13 @@ export default function Login() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const { user } = useAuth();
+
+  useEffect(() => {
+    if (user) {
+      navigate('/dashboard');
+    }
+  }, [user, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -21,7 +29,8 @@ export default function Login() {
       });
 
       if (error) throw error;
-      navigate('/dashboard');
+      
+      // Navigation will be handled by the useEffect above once user state updates
     } catch (err: any) {
       setError(err.message || 'Login fehlgeschlagen');
     } finally {

@@ -1,9 +1,9 @@
 import React, { useState, useEffect, FormEvent, ChangeEvent, useRef } from 'react';
 import { X, Upload } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { Event } from '../types';
 
-interface Event {
-  id?: number;
+interface EventFormData {
   title: string;
   description: string;
   location: string;
@@ -23,7 +23,7 @@ interface EventModalProps {
 }
 
 export default function EventModal({ isOpen, onClose, onSubmit, initialData }: EventModalProps) {
-  const [formData, setFormData] = useState<Event>({
+  const [formData, setFormData] = useState<EventFormData>({
     title: '',
     description: '',
     location: '',
@@ -59,7 +59,12 @@ export default function EventModal({ isOpen, onClose, onSubmit, initialData }: E
       setEndTime(end.toTimeString().slice(0, 5));
 
       setFormData({
-        ...initialData,
+        title: initialData.title,
+        description: initialData.description,
+        location: initialData.location,
+        start_time: initialData.start_time,
+        end_time: initialData.end_time,
+        image_url: initialData.image_url,
         color: initialData.color || '#0D89F9',
         button_text: initialData.button_text || 'JETZT ANMELDEN',
         button_link: initialData.button_link || '',
