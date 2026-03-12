@@ -5,6 +5,7 @@ import { Plus } from 'lucide-react';
 import EventModal from '../components/EventModal';
 import EventItem from '../components/EventItem';
 import { Event } from '../types';
+import { deleteEventWithEmail, sendEventEmail } from '../lib/eventActions';
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -82,16 +83,7 @@ export default function Dashboard() {
       }
 
       // Trigger email notification for subscribers
-      try {
-        const { error: emailError } = await supabase.functions.invoke('send-email', {
-          body: { record: insertedEvent, action: 'create' }
-        });
-        if (emailError) {
-          console.error('Edge function error:', emailError);
-        }
-      } catch (emailErr) {
-        console.error('Failed to send email notification:', emailErr);
-      }
+      await sendEventEmail(insertedEvent, 'create');
 
       setIsModalOpen(false);
       loadEvents();
@@ -147,16 +139,7 @@ export default function Dashboard() {
       if (error) throw error;
 
       // Trigger email notification for update
-      try {
-        const { error: emailError } = await supabase.functions.invoke('send-email', {
-          body: { record: updatedEvent, action: 'update' }
-        });
-        if (emailError) {
-          console.error('Edge function error:', emailError);
-        }
-      } catch (emailErr) {
-        console.error('Failed to send update email notification:', emailErr);
-      }
+      await sendEventEmail(updatedEvent, 'update');
 
       loadEvents();
     } catch (error) {
@@ -179,12 +162,13 @@ export default function Dashboard() {
   const confirmDelete = async () => {
     if (eventToDelete === null) return;
     try {
-      const { error } = await supabase
-        .from('events')
-        .delete()
-        .eq('id', eventToDelete);
-        
-      if (error) throw error;
+      const eventData = events.find((event) => event.id === eventToDelete);
+
+      if (!eventData) {
+        throw new Error('Veranstaltung zum Löschen nicht gefunden.');
+      }
+
+      await deleteEventWithEmail(eventData);
       loadEvents();
     } catch (error) {
       console.error('Failed to delete event', error);

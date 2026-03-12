@@ -7,6 +7,7 @@ import { de } from 'date-fns/locale';
 import UserModal from '../components/UserModal';
 import EventModal from '../components/EventModal';
 import { AdminEvent as Event, Profile } from '../types';
+import { deleteEventWithEmail, sendEventEmail } from '../lib/eventActions';
 
 export default function AdminDashboard() {
   const { isAdmin, loading: authLoading } = useAuth();
@@ -92,45 +93,11 @@ export default function AdminDashboard() {
     const eventToDeleteData = events.find((event) => event.id === eventToDelete);
 
     try {
-      if (eventToDeleteData) {
-        const deletePayload = {
-          record: {
-            id: eventToDeleteData.id,
-            user_id: eventToDeleteData.user_id,
-            title: eventToDeleteData.title,
-            description: eventToDeleteData.description,
-            location: eventToDeleteData.location,
-            start_time: eventToDeleteData.start_time,
-            end_time: eventToDeleteData.end_time,
-            image_url: eventToDeleteData.image_url,
-            color: eventToDeleteData.color,
-            button_text: eventToDeleteData.button_text,
-            button_link: eventToDeleteData.button_link,
-            created_at: eventToDeleteData.created_at,
-            webling_member_id: eventToDeleteData.webling_member_id,
-          },
-          action: 'delete',
-        };
-
-        console.log('DELETE email payload:', deletePayload);
-
-        const { data: emailData, error: emailError } = await supabase.functions.invoke('send-email', {
-          body: deletePayload,
-        });
-
-        console.log('DELETE email function response:', emailData, emailError);
-
-        if (emailError) {
-          console.error('Edge function error during delete notification:', emailError);
-        }
+      if (!eventToDeleteData) {
+        throw new Error('Veranstaltung zum Löschen nicht gefunden.');
       }
 
-      const { error } = await supabase
-        .from('events')
-        .delete()
-        .eq('id', eventToDelete);
-
-      if (error) throw error;
+      await deleteEventWithEmail(eventToDeleteData);
       loadData();
     } catch (error) {
       console.error('Failed to delete event', error);
@@ -189,14 +156,7 @@ export default function AdminDashboard() {
 
       if (error) throw error;
 
-      // Trigger email notification for update
-      try {
-        await supabase.functions.invoke('send-email', {
-          body: { record: updatedEvent, action: 'update' }
-        });
-      } catch (emailErr) {
-        console.error('Failed to send update email notification:', emailErr);
-      }
+      await sendEventEmail(updatedEvent, 'update');
 
       setIsEventModalOpen(false);
       setEditingEvent(null);
