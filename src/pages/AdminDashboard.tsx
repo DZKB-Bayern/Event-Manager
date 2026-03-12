@@ -89,6 +89,27 @@ export default function AdminDashboard() {
   const confirmDeleteEvent = async () => {
     if (eventToDelete === null) return;
     try {
+      const eventToRemove = events.find((event) => event.id === eventToDelete);
+
+      if (!eventToRemove) {
+        throw new Error('Veranstaltung nicht gefunden');
+      }
+
+      try {
+        const { error: emailError } = await supabase.functions.invoke('send-email', {
+          body: {
+            record: eventToRemove,
+            action: 'delete',
+          },
+        });
+
+        if (emailError) {
+          console.error('Edge function error on delete:', emailError);
+        }
+      } catch (emailErr) {
+        console.error('Failed to send delete email notification:', emailErr);
+      }
+
       const { error } = await supabase
         .from('events')
         .delete()
