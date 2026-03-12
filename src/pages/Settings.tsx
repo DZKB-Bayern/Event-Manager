@@ -80,7 +80,7 @@ export default function Settings() {
         .from('profiles')
         .update({
           username,
-          email: user.email, // Ensure email is synced to profiles table
+          email: wantsNotifications ? user.email : null, // Remove email if notifications are disabled
           wants_notifications: wantsNotifications,
           notification_status: newStatus,
           notification_token: token,

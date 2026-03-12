@@ -11,6 +11,7 @@ export default function Dashboard() {
   const [events, setEvents] = useState<Event[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [eventToDelete, setEventToDelete] = useState<number | null>(null);
 
   const loadEvents = async () => {
     if (!user) return;
@@ -74,10 +75,22 @@ export default function Dashboard() {
         image_url: image_url || undefined,
       };
 
-      const { error: dbError } = await supabase.from('events').insert([newEvent]);
+      const { data: insertedEvent, error: dbError } = await supabase.from('events').insert([newEvent]).select().single();
       if (dbError) {
         console.error('Database insert error:', dbError);
         throw new Error(`Datenbank-Fehler: ${dbError.message}`);
+      }
+
+      // Trigger email notification for subscribers
+      try {
+        const { error: emailError } = await supabase.functions.invoke('send-email', {
+          body: { record: insertedEvent, action: 'create' }
+        });
+        if (emailError) {
+          console.error('Edge function error:', emailError);
+        }
+      } catch (emailErr) {
+        console.error('Failed to send email notification:', emailErr);
       }
 
       setIsModalOpen(false);
@@ -124,12 +137,26 @@ export default function Dashboard() {
         image_url: image_url,
       };
 
-      const { error } = await supabase
+      const { data: updatedEvent, error } = await supabase
         .from('events')
         .update(updates)
-        .eq('id', event.id);
+        .eq('id', event.id)
+        .select()
+        .single();
         
       if (error) throw error;
+
+      // Trigger email notification for update
+      try {
+        const { error: emailError } = await supabase.functions.invoke('send-email', {
+          body: { record: updatedEvent, action: 'update' }
+        });
+        if (emailError) {
+          console.error('Edge function error:', emailError);
+        }
+      } catch (emailErr) {
+        console.error('Failed to send update email notification:', emailErr);
+      }
 
       loadEvents();
     } catch (error) {
@@ -138,17 +165,31 @@ export default function Dashboard() {
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm('Sind Sie sicher, dass Sie diese Veranstaltung löschen möchten?')) return;
+    // We use a custom modal or simple confirm, but since window.confirm is blocked in iframe,
+    // we should ideally use a custom modal. For now, since the user mentioned "Möglichkeit, Events wieder zu löschen, ist auch nicht mehr vorhanden",
+    // it might be because window.confirm is blocked in the iframe.
+    // Let's replace window.confirm with a direct delete for now, or use a custom state.
+    // Actually, the prompt says "Do NOT use confirm(), window.confirm(), alert() or window.alert() in the code. The code is running in an iframe and the user will NOT see the confirmation dialog or alerts. Instead, use custom modal UI for these."
+    
+    // I will implement a simple custom confirm modal or just remove the confirm for now to make it work.
+    // Let's add a state for eventToDelete.
+    setEventToDelete(id);
+  };
+
+  const confirmDelete = async () => {
+    if (eventToDelete === null) return;
     try {
       const { error } = await supabase
         .from('events')
         .delete()
-        .eq('id', id);
+        .eq('id', eventToDelete);
         
       if (error) throw error;
       loadEvents();
     } catch (error) {
       console.error('Failed to delete event', error);
+    } finally {
+      setEventToDelete(null);
     }
   };
 
@@ -195,6 +236,55 @@ export default function Dashboard() {
         onSubmit={handleCreate}
         initialData={null}
       />
+
+      {/* Delete Confirmation Modal */}
+      {eventToDelete !== null && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto overflow-x-hidden bg-black/50 backdrop-blur-sm p-4 md:inset-0 md:h-full"
+          onClick={() => setEventToDelete(null)}
+        >
+          <div 
+            className="relative w-full max-w-md h-full md:h-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="relative bg-white rounded-lg shadow-xl p-6">
+              <div className="sm:flex sm:items-start">
+                <div className="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100 sm:mx-0 sm:h-10 sm:w-10">
+                  <svg className="h-6 w-6 text-red-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                </div>
+                <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
+                  <h3 className="text-lg leading-6 font-medium text-gray-900" id="modal-title">
+                    Veranstaltung löschen
+                  </h3>
+                  <div className="mt-2">
+                    <p className="text-sm text-gray-500">
+                      Sind Sie sicher, dass Sie diese Veranstaltung löschen möchten? Diese Aktion kann nicht rückgängig gemacht werden.
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div className="mt-5 sm:mt-4 sm:flex sm:flex-row-reverse">
+                <button
+                  type="button"
+                  onClick={confirmDelete}
+                  className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:ml-3 sm:w-auto sm:text-sm"
+                >
+                  Löschen
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setEventToDelete(null)}
+                  className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary sm:mt-0 sm:w-auto sm:text-sm"
+                >
+                  Abbrechen
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

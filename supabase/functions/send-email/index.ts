@@ -26,6 +26,8 @@ serve(async (req) => {
 
     const payload = await req.json()
     const record = payload.record || payload 
+    const action = payload.action || 'create'
+    const isUpdate = action === 'update'
 
     if (!record || !record.title) throw new Error('Ungültige Event-Daten')
 
@@ -51,7 +53,7 @@ serve(async (req) => {
     const adminEmail = {
       from: SENDER_EMAIL,
       to: ADMIN_EMAILS,
-      subject: `Neues Event erstellt: ${record.title}`,
+      subject: isUpdate ? `Event aktualisiert: ${record.title}` : `Neues Event erstellt: ${record.title}`,
       html: `
 <!DOCTYPE html>
 <html lang="de">
@@ -74,8 +76,8 @@ serve(async (req) => {
         <img src="https://dzkb.bayern/wp-content/uploads/2026/03/Event-Manager.jpg" alt="DZKB Event Manager" class="banner">
         
         <div class="content">
-            <h1>Neues Event erstellt</h1>
-            <p>Ein Mitglied hat eine neue Veranstaltung eingereicht, die überprüft werden kann.</p>
+            <h1>${isUpdate ? 'Event aktualisiert' : 'Neues Event erstellt'}</h1>
+            <p>${isUpdate ? 'Ein Mitglied hat eine Veranstaltung aktualisiert.' : 'Ein Mitglied hat eine neue Veranstaltung eingereicht, die überprüft werden kann.'}</p>
             
             <div class="event-card">
                 <h2 style="color: #333; margin-top: 0; font-size: 18px;">${record.title}</h2>
@@ -102,7 +104,7 @@ serve(async (req) => {
       return {
         from: SENDER_EMAIL,
         to: sub.email,
-        subject: `Neues Event: ${record.title}`,
+        subject: isUpdate ? `Event aktualisiert: ${record.title}` : `Neues Event: ${record.title}`,
         html: `
 <!DOCTYPE html>
 <html lang="de">
@@ -126,8 +128,8 @@ serve(async (req) => {
         <img src="https://dzkb.bayern/wp-content/uploads/2026/03/Event-Manager.jpg" alt="DZKB Event Manager" class="banner">
         
         <div class="content">
-            <h1>Neue Veranstaltung eingetragen!</h1>
-            <p>Es gibt Neuigkeiten im DZKB Event Manager. Eine neue Veranstaltung wurde veröffentlicht:</p>
+            <h1>${isUpdate ? 'Veranstaltung aktualisiert!' : 'Neue Veranstaltung eingetragen!'}</h1>
+            <p>${isUpdate ? 'Eine Veranstaltung im DZKB Event Manager wurde geändert. Hier sind die aktuellen Details:' : 'Es gibt Neuigkeiten im DZKB Event Manager. Eine neue Veranstaltung wurde veröffentlicht:'}</p>
             
             <div class="event-card">
                 <h2 style="color: #333; margin-top: 0; font-size: 18px;">${record.title}</h2>
