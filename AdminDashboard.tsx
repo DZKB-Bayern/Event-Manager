@@ -8,6 +8,60 @@ import UserModal from '../components/UserModal';
 import EventModal from '../components/EventModal';
 import { AdminEvent as Event, Profile } from '../types';
 
+
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+async function triggerEventEmail(record: any, action: 'create' | 'update') {
+  const payload = { record, action };
+
+  try {
+    const { data, error } = await supabase.functions.invoke('send-email', {
+      body: payload,
+    });
+
+    if (!error) {
+      console.log(`Email (${action}) sent successfully via invoke:`, data);
+      return;
+    }
+
+    console.error(`Edge function invoke error (${action}):`, error);
+  } catch (invokeError) {
+    console.error(`Failed to invoke edge function (${action}):`, invokeError);
+  }
+
+  const sessionResult = await supabase.auth.getSession();
+  const accessToken = sessionResult.data.session?.access_token;
+
+  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+    throw new Error('Supabase Umgebungsvariablen für den direkten Function-Aufruf fehlen.');
+  }
+
+  const response = await fetch(`${SUPABASE_URL}/functions/v1/send-email`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      apikey: SUPABASE_ANON_KEY,
+      Authorization: `Bearer ${accessToken ?? SUPABASE_ANON_KEY}`,
+    },
+    body: JSON.stringify(payload),
+  });
+
+  const responseText = await response.text();
+
+  if (!response.ok) {
+    throw new Error(`Direct function call failed: ${response.status} ${responseText}`);
+  }
+
+  try {
+    const responseJson = JSON.parse(responseText);
+    console.log(`Email (${action}) sent successfully via direct fetch:`, responseJson);
+  } catch {
+    console.log(`Email (${action}) sent successfully via direct fetch.`);
+  }
+}
+
+
 export default function AdminDashboard() {
   const { isAdmin, loading: authLoading } = useAuth();
   const [users, setUsers] = useState<Profile[]>([]);
@@ -155,13 +209,8 @@ export default function AdminDashboard() {
 
       // Trigger email notification for update
       try {
-        const fullEvent = {
-          ...editingEvent,
-          ...updates,
-        };
-
         const { data: emailData, error: emailError } = await supabase.functions.invoke('send-email', {
-          body: { record: fullEvent, action: 'update' }
+          body: { record: updatedEvent, action: 'update' }
         });
         
         if (emailError) {
