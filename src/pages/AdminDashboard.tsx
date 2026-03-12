@@ -93,16 +93,35 @@ export default function AdminDashboard() {
 
     try {
       if (eventToDeleteData) {
-        try {
-          const { error: emailError } = await supabase.functions.invoke('send-email', {
-            body: { record: eventToDeleteData, action: 'delete' }
-          });
+        const deletePayload = {
+          record: {
+            id: eventToDeleteData.id,
+            user_id: eventToDeleteData.user_id,
+            title: eventToDeleteData.title,
+            description: eventToDeleteData.description,
+            location: eventToDeleteData.location,
+            start_time: eventToDeleteData.start_time,
+            end_time: eventToDeleteData.end_time,
+            image_url: eventToDeleteData.image_url,
+            color: eventToDeleteData.color,
+            button_text: eventToDeleteData.button_text,
+            button_link: eventToDeleteData.button_link,
+            created_at: eventToDeleteData.created_at,
+            webling_member_id: eventToDeleteData.webling_member_id,
+          },
+          action: 'delete',
+        };
 
-          if (emailError) {
-            console.error('Edge function error during delete notification:', emailError);
-          }
-        } catch (emailErr) {
-          console.error('Failed to send delete email notification:', emailErr);
+        console.log('DELETE email payload:', deletePayload);
+
+        const { data: emailData, error: emailError } = await supabase.functions.invoke('send-email', {
+          body: deletePayload,
+        });
+
+        console.log('DELETE email function response:', emailData, emailError);
+
+        if (emailError) {
+          console.error('Edge function error during delete notification:', emailError);
         }
       }
 
@@ -161,27 +180,20 @@ export default function AdminDashboard() {
         image_url: image_url,
       };
 
-      const { error } = await supabase
+      const { data: updatedEvent, error } = await supabase
         .from('events')
         .update(updates)
-        .eq('id', editingEvent.id);
+        .eq('id', editingEvent.id)
+        .select()
+        .single();
 
       if (error) throw error;
 
-      const fullEvent = {
-        ...editingEvent,
-        ...updates,
-      };
-
       // Trigger email notification for update
       try {
-        const { error: emailError } = await supabase.functions.invoke('send-email', {
-          body: { record: fullEvent, action: 'update' }
+        await supabase.functions.invoke('send-email', {
+          body: { record: updatedEvent, action: 'update' }
         });
-
-        if (emailError) {
-          console.error('Edge function error:', emailError);
-        }
       } catch (emailErr) {
         console.error('Failed to send update email notification:', emailErr);
       }
