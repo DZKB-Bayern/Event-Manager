@@ -12,6 +12,8 @@ import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import AdminDashboard from './pages/AdminDashboard';
 import ProtectedRoute from './components/ProtectedRoute';
+import ConfirmSubscription from './pages/ConfirmSubscription';
+import Unsubscribe from './pages/Unsubscribe';
 
 function AppContent() {
   const location = useLocation();
@@ -35,6 +37,8 @@ function AppContent() {
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/confirm-subscription" element={<ConfirmSubscription />} />
+        <Route path="/unsubscribe" element={<Unsubscribe />} />
         <Route element={<ProtectedRoute />}>
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/admin" element={<AdminDashboard />} />
