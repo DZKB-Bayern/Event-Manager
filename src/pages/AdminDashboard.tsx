@@ -89,56 +89,32 @@ export default function AdminDashboard() {
   const confirmDeleteEvent = async () => {
     if (eventToDelete === null) return;
 
-    const eventRecord = events.find((event) => event.id === eventToDelete);
-
-    if (!eventRecord) {
-      alert('Die Veranstaltung konnte nicht gefunden werden.');
-      setEventToDelete(null);
-      return;
-    }
+    const eventToDeleteData = events.find((event) => event.id === eventToDelete);
 
     try {
+      if (eventToDeleteData) {
+        try {
+          const { error: emailError } = await supabase.functions.invoke('send-email', {
+            body: { record: eventToDeleteData, action: 'delete' }
+          });
+
+          if (emailError) {
+            console.error('Edge function error during delete notification:', emailError);
+          }
+        } catch (emailErr) {
+          console.error('Failed to send delete email notification:', emailErr);
+        }
+      }
+
       const { error } = await supabase
         .from('events')
         .delete()
         .eq('id', eventToDelete);
-        
+
       if (error) throw error;
-
-      try {
-        const deletePayload = {
-          id: eventRecord.id,
-          title: eventRecord.title,
-          description: eventRecord.description,
-          location: eventRecord.location,
-          start_time: eventRecord.start_time,
-          end_time: eventRecord.end_time,
-          color: eventRecord.color,
-          button_text: eventRecord.button_text,
-          button_link: eventRecord.button_link,
-          image_url: eventRecord.image_url,
-          user_id: eventRecord.user_id,
-        };
-
-        const { data: emailData, error: emailError } = await supabase.functions.invoke('send-email', {
-          body: { record: deletePayload, action: 'delete' }
-        });
-
-        if (emailError) {
-          console.error('Edge function error on delete:', emailError);
-          alert(`Fehler beim Senden der Lösch-Benachrichtigung: ${emailError.message || JSON.stringify(emailError)}`);
-        } else {
-          console.log('Delete email sent successfully:', emailData);
-        }
-      } catch (emailErr: any) {
-        console.error('Failed to send delete email notification:', emailErr);
-        alert(`Fehler beim Aufruf der E-Mail-Funktion nach dem Löschen: ${emailErr.message}`);
-      }
-
       loadData();
-    } catch (error: any) {
+    } catch (error) {
       console.error('Failed to delete event', error);
-      alert(error.message);
     } finally {
       setEventToDelete(null);
     }
@@ -185,39 +161,29 @@ export default function AdminDashboard() {
         image_url: image_url,
       };
 
-      const { data: updatedEvent, error } = await supabase
+      const { error } = await supabase
         .from('events')
         .update(updates)
-        .eq('id', editingEvent.id)
-        .select()
-        .single();
+        .eq('id', editingEvent.id);
 
       if (error) throw error;
 
+      const fullEvent = {
+        ...editingEvent,
+        ...updates,
+      };
+
       // Trigger email notification for update
       try {
-        const fullEvent = {
-          ...editingEvent,
-          ...updates,
-        };
-
-        const { data: emailData, error: emailError } = await supabase.functions.invoke('send-email', {
+        const { error: emailError } = await supabase.functions.invoke('send-email', {
           body: { record: fullEvent, action: 'update' }
         });
-        
+
         if (emailError) {
           console.error('Edge function error:', emailError);
-          if (emailError.context && emailError.context.status === 404) {
-            alert('Die E-Mail-Funktion "send-email" wurde noch nicht in Supabase bereitgestellt (Deployed).');
-          } else {
-            alert(`Fehler beim Senden der E-Mail-Benachrichtigung: ${emailError.message || JSON.stringify(emailError)}`);
-          }
-        } else {
-          console.log('Email sent successfully:', emailData);
         }
-      } catch (emailErr: any) {
+      } catch (emailErr) {
         console.error('Failed to send update email notification:', emailErr);
-        alert(`Fehler beim Aufruf der E-Mail-Funktion: ${emailErr.message}`);
       }
 
       setIsEventModalOpen(false);
