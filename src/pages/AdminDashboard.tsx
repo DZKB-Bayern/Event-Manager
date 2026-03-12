@@ -89,40 +89,56 @@ export default function AdminDashboard() {
   const confirmDeleteEvent = async () => {
     if (eventToDelete === null) return;
 
-    const eventToRemove = events.find((event) => event.id === eventToDelete);
+    const eventRecord = events.find((event) => event.id === eventToDelete);
+
+    if (!eventRecord) {
+      alert('Die Veranstaltung konnte nicht gefunden werden.');
+      setEventToDelete(null);
+      return;
+    }
 
     try {
       const { error } = await supabase
         .from('events')
         .delete()
         .eq('id', eventToDelete);
-
+        
       if (error) throw error;
 
-      if (eventToRemove) {
-        try {
-          const { data: emailData, error: emailError } = await supabase.functions.invoke('send-email', {
-            body: {
-              record: eventToRemove,
-              action: 'delete',
-            },
-          });
+      try {
+        const deletePayload = {
+          id: eventRecord.id,
+          title: eventRecord.title,
+          description: eventRecord.description,
+          location: eventRecord.location,
+          start_time: eventRecord.start_time,
+          end_time: eventRecord.end_time,
+          color: eventRecord.color,
+          button_text: eventRecord.button_text,
+          button_link: eventRecord.button_link,
+          image_url: eventRecord.image_url,
+          user_id: eventRecord.user_id,
+        };
 
-          if (emailError) {
-            console.error('Edge function error during delete email:', emailError);
-            alert(`Fehler beim Senden der Lösch-Benachrichtigung: ${emailError.message || JSON.stringify(emailError)}`);
-          } else {
-            console.log('Delete email sent successfully:', emailData);
-          }
-        } catch (emailErr: any) {
-          console.error('Failed to send delete email notification:', emailErr);
-          alert(`Fehler beim Aufruf der E-Mail-Funktion für gelöschte Veranstaltungen: ${emailErr.message}`);
+        const { data: emailData, error: emailError } = await supabase.functions.invoke('send-email', {
+          body: { record: deletePayload, action: 'delete' }
+        });
+
+        if (emailError) {
+          console.error('Edge function error on delete:', emailError);
+          alert(`Fehler beim Senden der Lösch-Benachrichtigung: ${emailError.message || JSON.stringify(emailError)}`);
+        } else {
+          console.log('Delete email sent successfully:', emailData);
         }
+      } catch (emailErr: any) {
+        console.error('Failed to send delete email notification:', emailErr);
+        alert(`Fehler beim Aufruf der E-Mail-Funktion nach dem Löschen: ${emailErr.message}`);
       }
 
       loadData();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to delete event', error);
+      alert(error.message);
     } finally {
       setEventToDelete(null);
     }
