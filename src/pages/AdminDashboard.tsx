@@ -144,20 +144,27 @@ export default function AdminDashboard() {
         image_url: image_url,
       };
 
-      const { data: updatedEvent, error } = await supabase
+      const { error } = await supabase
         .from('events')
         .update(updates)
-        .eq('id', editingEvent.id)
-        .select()
-        .single();
+        .eq('id', editingEvent.id);
 
       if (error) throw error;
 
+      const fullEvent = {
+        ...editingEvent,
+        ...updates,
+      };
+
       // Trigger email notification for update
       try {
-        await supabase.functions.invoke('send-email', {
-          body: { record: updatedEvent, action: 'update' }
+        const { error: emailError } = await supabase.functions.invoke('send-email', {
+          body: { record: fullEvent, action: 'update' }
         });
+
+        if (emailError) {
+          console.error('Edge function error:', emailError);
+        }
       } catch (emailErr) {
         console.error('Failed to send update email notification:', emailErr);
       }
