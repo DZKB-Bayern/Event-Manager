@@ -57,8 +57,8 @@ serve(async (req) => {
         <div class="content">
             <h1>E-Mail-Benachrichtigungen bestätigen</h1>
             <p>Hallo,</p>
-            <p>vielen Dank für Ihr Interesse! Sie haben angegeben, dass Sie per E-Mail informiert werden möchten, wenn neue Veranstaltungen eingetragen werden.</p>
-            <p>Bitte klicken Sie auf den folgenden Button, um Ihre E-Mail-Adresse zu bestätigen und die Benachrichtigungen zu aktivieren:</p>
+            <p>vielen Dank für Dein Interesse! Du hast nun angegeben, dass Du per E-Mail informiert werden möchtest, wenn neue Veranstaltungen eingetragen werden.</p>
+            <p>Bitte klicke auf den folgenden Button, um Deine E-Mail-Adresse zu bestätigen und die Benachrichtigungen zu aktivieren:</p>
             
             <a href="${confirmUrl}" class="button">Benachrichtigungen aktivieren</a>
             
@@ -76,6 +76,11 @@ serve(async (req) => {
         `,
       }),
     })
+
+    if (!res.ok) {
+      const errorText = await res.text()
+      throw new Error(`Resend API Error: ${res.status} ${errorText}`)
+    }
 
     const data = await res.json()
     return new Response(JSON.stringify(data), {

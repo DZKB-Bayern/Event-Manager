@@ -1,9 +1,9 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { LogOut, User, LayoutDashboard, Shield } from 'lucide-react';
+import { LogOut, User, LayoutDashboard, Shield, Settings as SettingsIcon } from 'lucide-react';
 
 export default function Navbar() {
-  const { user, profile, isAdmin, signOut } = useAuth();
+  const { user, isAdmin, signOut } = useAuth();
   const navigate = useNavigate();
 
   const handleSignOut = async () => {
@@ -56,9 +56,17 @@ export default function Navbar() {
 
                 <div className="flex items-center space-x-2 text-gray-600 text-sm bg-gray-50 px-3 py-1.5 rounded-full border border-gray-100">
                   <User className="h-4 w-4 text-primary" />
-                  <span className="font-medium">{profile?.username || user.email?.split('@')[0]}</span>
+                  <span className="font-medium">{user.username || user.email?.split('@')[0]}</span>
                 </div>
                 
+                <Link
+                  to="/settings"
+                  className="text-gray-500 hover:text-primary hover:bg-gray-50 p-2 rounded-full transition-all duration-200"
+                  title="Einstellungen"
+                >
+                  <SettingsIcon className="h-5 w-5" />
+                </Link>
+
                 <button
                   onClick={handleSignOut}
                   className="text-gray-500 hover:text-red-600 hover:bg-red-50 p-2 rounded-full transition-all duration-200"

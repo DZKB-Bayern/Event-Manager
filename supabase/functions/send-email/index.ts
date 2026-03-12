@@ -162,6 +162,11 @@ serve(async (req) => {
       body: JSON.stringify(emailsToSend),
     })
 
+    if (!res.ok) {
+      const errorText = await res.text()
+      throw new Error(`Resend API Error: ${res.status} ${errorText}`)
+    }
+
     const data = await res.json()
     return new Response(JSON.stringify(data), {
       headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },

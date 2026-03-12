@@ -14,6 +14,7 @@ import AdminDashboard from './pages/AdminDashboard';
 import ProtectedRoute from './components/ProtectedRoute';
 import ConfirmSubscription from './pages/ConfirmSubscription';
 import Unsubscribe from './pages/Unsubscribe';
+import Settings from './pages/Settings';
 
 function AppContent() {
   const location = useLocation();
@@ -42,6 +43,7 @@ function AppContent() {
         <Route element={<ProtectedRoute />}>
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/admin" element={<AdminDashboard />} />
+          <Route path="/settings" element={<Settings />} />
         </Route>
       </Routes>
     </div>

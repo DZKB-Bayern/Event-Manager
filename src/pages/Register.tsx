@@ -6,7 +6,6 @@ export default function Register() {
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [wantsNotifications, setWantsNotifications] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -31,34 +30,25 @@ export default function Register() {
       if (error) throw error;
       
       if (data.user) {
-        // Create profile entry
+        // Create or update profile entry (upsert fixes issues if a DB trigger already created the row)
         const { data: profileData, error: profileError } = await supabase
           .from('profiles')
-          .insert([
+          .upsert([
             {
               id: data.user.id,
               username,
               role: 'user',
               email: email,
-              wants_notifications: wantsNotifications,
-              notification_status: wantsNotifications ? 'pending' : 'unsubscribed',
+              wants_notifications: false,
+              notification_status: 'unsubscribed',
             },
-          ])
+          ], { onConflict: 'id' })
           .select()
           .single();
 
         if (profileError) {
           console.error('Error creating profile:', profileError);
           // Don't fail registration if profile creation fails, but log it
-        } else if (wantsNotifications && profileData?.notification_token) {
-          // Send DOI email
-          try {
-            await supabase.functions.invoke('send-doi-email', {
-              body: { email: email, token: profileData.notification_token }
-            });
-          } catch (fnError) {
-            console.error('Error sending DOI email:', fnError);
-          }
         }
       }
 
@@ -176,20 +166,6 @@ export default function Register() {
                 onChange={(e) => setPassword(e.target.value)}
               />
             </div>
-          </div>
-
-          <div className="flex items-center">
-            <input
-              id="notifications"
-              name="notifications"
-              type="checkbox"
-              className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded"
-              checked={wantsNotifications}
-              onChange={(e) => setWantsNotifications(e.target.checked)}
-            />
-            <label htmlFor="notifications" className="ml-2 block text-sm text-gray-900">
-              Ich möchte per E-Mail benachrichtigt werden, wenn neue Veranstaltungen eingetragen werden.
-            </label>
           </div>
 
           <div>
