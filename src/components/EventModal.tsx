@@ -13,6 +13,7 @@ interface EventFormData {
   color?: string;
   button_text?: string;
   button_link?: string;
+  category: string;
 }
 
 interface EventModalProps {
@@ -20,9 +21,10 @@ interface EventModalProps {
   onClose: () => void;
   onSubmit: (formData: FormData) => void;
   initialData?: Event | null;
+  isDuplicate?: boolean;
 }
 
-export default function EventModal({ isOpen, onClose, onSubmit, initialData }: EventModalProps) {
+export default function EventModal({ isOpen, onClose, onSubmit, initialData, isDuplicate }: EventModalProps) {
   const [formData, setFormData] = useState<EventFormData>({
     title: '',
     description: '',
@@ -33,6 +35,7 @@ export default function EventModal({ isOpen, onClose, onSubmit, initialData }: E
     color: '#0D89F9',
     button_text: 'JETZT ANMELDEN',
     button_link: '',
+    category: 'events',
   });
   
   // Separate state for date and time inputs
@@ -68,6 +71,7 @@ export default function EventModal({ isOpen, onClose, onSubmit, initialData }: E
         color: initialData.color || '#0D89F9',
         button_text: initialData.button_text || 'JETZT ANMELDEN',
         button_link: initialData.button_link || '',
+        category: initialData.category || 'events',
       });
       setPreviewUrl(initialData.image_url || null);
     } else {
@@ -82,6 +86,7 @@ export default function EventModal({ isOpen, onClose, onSubmit, initialData }: E
         color: '#0D89F9',
         button_text: 'JETZT ANMELDEN',
         button_link: '',
+        category: 'events',
       });
       setStartDate('');
       setStartTime('');
@@ -116,9 +121,12 @@ export default function EventModal({ isOpen, onClose, onSubmit, initialData }: E
     data.append('color', formData.color || '#0D89F9');
     data.append('button_text', formData.button_text || 'JETZT ANMELDEN');
     data.append('button_link', formData.button_link || '');
+    data.append('category', formData.category || 'events');
     
     if (imageFile) {
       data.append('image', imageFile);
+    } else if (initialData?.image_url) {
+      data.append('existing_image_url', initialData.image_url);
     }
     onSubmit(data);
   };
@@ -165,7 +173,7 @@ export default function EventModal({ isOpen, onClose, onSubmit, initialData }: E
               </button>
               <div className="px-6 py-6 lg:px-8 max-h-[80vh] overflow-y-auto">
                 <h3 className="mb-4 text-xl font-medium text-gray-900">
-                  {initialData ? 'Veranstaltung bearbeiten' : 'Neue Veranstaltung erstellen'}
+                  {isDuplicate ? 'Veranstaltung duplizieren' : initialData ? 'Veranstaltung bearbeiten' : 'Neue Veranstaltung erstellen'}
                 </h3>
                 <form className="space-y-6" onSubmit={handleSubmit}>
                   <div>
@@ -182,6 +190,35 @@ export default function EventModal({ isOpen, onClose, onSubmit, initialData }: E
                       value={formData.title}
                       onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                     />
+                  </div>
+                  <div>
+                    <label className="block mb-2 text-sm font-medium text-gray-900">
+                      Kategorie
+                    </label>
+                    <div className="flex gap-4">
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="category"
+                          value="events"
+                          checked={formData.category === 'events'}
+                          onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                          className="w-4 h-4 text-primary bg-gray-100 border-gray-300 focus:ring-primary"
+                        />
+                        <span className="text-sm font-medium text-gray-900">Events</span>
+                      </label>
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="category"
+                          value="akademie"
+                          checked={formData.category === 'akademie'}
+                          onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                          className="w-4 h-4 text-primary bg-gray-100 border-gray-300 focus:ring-primary"
+                        />
+                        <span className="text-sm font-medium text-gray-900">Akademie</span>
+                      </label>
+                    </div>
                   </div>
                   <div>
                     <label htmlFor="description" className="block mb-2 text-sm font-medium text-gray-900">
@@ -324,7 +361,7 @@ export default function EventModal({ isOpen, onClose, onSubmit, initialData }: E
                     type="submit"
                     className="w-full text-white bg-primary hover:bg-primary-hover focus:ring-4 focus:outline-none focus:ring-primary/50 font-medium rounded-lg text-sm px-5 py-2.5 text-center"
                   >
-                    {initialData ? 'Veranstaltung aktualisieren' : 'Veranstaltung erstellen'}
+                    {isDuplicate ? 'Veranstaltung duplizieren' : initialData ? 'Veranstaltung aktualisieren' : 'Veranstaltung erstellen'}
                   </button>
                 </form>
               </div>

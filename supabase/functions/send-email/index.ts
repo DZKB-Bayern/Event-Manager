@@ -229,10 +229,12 @@ serve(async (req) => {
       },
     })
   } catch (error) {
+    console.error('Send-email function error:', error);
     return new Response(JSON.stringify({
+      success: false,
       error: error instanceof Error ? error.message : 'Unbekannter Fehler',
     }), {
-      status: 400,
+      status: 200, // Return 200 so the client can read the JSON response
       headers: {
         'Content-Type': 'application/json',
         'Access-Control-Allow-Origin': '*',

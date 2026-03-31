@@ -10,6 +10,7 @@ export interface Event {
   color?: string;
   button_text?: string;
   button_link?: string;
+  category?: string;
 }
 
 export interface AdminEvent extends Event {

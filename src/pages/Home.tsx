@@ -27,6 +27,7 @@ export default function Home() {
   const location = useLocation();
   const searchParams = new URLSearchParams(location.search);
   const embedParam = searchParams.get('embed');
+  const categoryParam = searchParams.get('category');
   const isEmbed = 
     embedParam === 'true' || 
     embedParam === '1' || 
@@ -37,10 +38,16 @@ export default function Home() {
   useEffect(() => {
     const fetchEvents = async () => {
       try {
-        const { data, error } = await supabase
+        let query = supabase
           .from('events')
           .select('*, profiles(username)')
           .order('start_time', { ascending: true });
+
+        if (categoryParam) {
+          query = query.eq('category', categoryParam);
+        }
+
+        const { data, error } = await query;
 
         if (error) throw error;
         setEvents(data || []);
@@ -52,7 +59,7 @@ export default function Home() {
     };
 
     fetchEvents();
-  }, []);
+  }, [categoryParam]);
 
   if (loading) {
     return (
@@ -76,10 +83,10 @@ export default function Home() {
       <div className="flex flex-col md:flex-row justify-between items-end mb-12 gap-4">
         <div className="text-center md:text-left w-full md:w-auto">
           <h1 className="text-4xl font-light sm:text-5xl sm:tracking-tight lg:text-6xl" style={{ color: '#0C71C3' }}>
-            Unsere Events
+            {categoryParam === 'akademie' ? 'Unsere Akademie' : categoryParam === 'events' ? 'Unsere Events' : 'Unsere Events & Akademie'}
           </h1>
           <p className="mt-5 max-w-xl text-xl mx-auto md:mx-0" style={{ color: '#0C71C3' }}>
-            Zukünftige Veranstaltungen unserer Mitglieder.
+            {categoryParam === 'akademie' ? 'Zukünftige Akademie-Termine unserer Mitglieder.' : categoryParam === 'events' ? 'Zukünftige Veranstaltungen unserer Mitglieder.' : 'Zukünftige Veranstaltungen und Akademie-Termine unserer Mitglieder.'}
           </p>
         </div>
 

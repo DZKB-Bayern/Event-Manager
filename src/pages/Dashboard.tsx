@@ -5,7 +5,6 @@ import { Plus } from 'lucide-react';
 import EventModal from '../components/EventModal';
 import EventItem from '../components/EventItem';
 import { Event } from '../types';
-import { deleteEventWithEmail, sendEventEmail } from '../lib/eventActions';
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -13,6 +12,7 @@ export default function Dashboard() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [eventToDelete, setEventToDelete] = useState<number | null>(null);
+  const [eventToDuplicate, setEventToDuplicate] = useState<Event | null>(null);
 
   const loadEvents = async () => {
     if (!user) return;
@@ -39,7 +39,7 @@ export default function Dashboard() {
   const handleCreate = async (formData: FormData) => {
     if (!user) return;
     try {
-      let image_url = '';
+      let image_url = (formData.get('existing_image_url') as string) || '';
       const imageFile = formData.get('image') as File;
       
       if (imageFile) {
@@ -73,6 +73,7 @@ export default function Dashboard() {
         color: formData.get('color') as string,
         button_text: formData.get('button_text') as string,
         button_link: formData.get('button_link') as string,
+        category: formData.get('category') as string,
         image_url: image_url || undefined,
       };
 
@@ -83,7 +84,28 @@ export default function Dashboard() {
       }
 
       // Trigger email notification for subscribers
-      await sendEventEmail(insertedEvent, 'create');
+      try {
+        const { data: emailData, error: emailError } = await supabase.functions.invoke('send-email', {
+          body: { record: insertedEvent, action: 'create' }
+        });
+        
+        if (emailError) {
+          console.error('Edge function error:', emailError);
+          if (emailError.context && emailError.context.status === 404) {
+            alert('Die E-Mail-Funktion "send-email" wurde noch nicht in Supabase bereitgestellt (Deployed).');
+          } else {
+            alert(`Fehler beim Senden der E-Mail-Benachrichtigung: ${emailError.message || JSON.stringify(emailError)}`);
+          }
+        } else if (emailData && emailData.error) {
+          console.error('Email function returned error:', emailData.error);
+          alert(`Fehler beim Senden der E-Mail: ${emailData.error}`);
+        } else {
+          console.log('Email sent successfully:', emailData);
+        }
+      } catch (emailErr: any) {
+        console.error('Failed to send email notification:', emailErr);
+        alert(`Fehler beim Aufruf der E-Mail-Funktion: ${emailErr.message}`);
+      }
 
       setIsModalOpen(false);
       loadEvents();
@@ -126,6 +148,7 @@ export default function Dashboard() {
         color: formData.get('color') as string,
         button_text: formData.get('button_text') as string,
         button_link: formData.get('button_link') as string,
+        category: formData.get('category') as string,
         image_url: image_url,
       };
 
@@ -139,7 +162,28 @@ export default function Dashboard() {
       if (error) throw error;
 
       // Trigger email notification for update
-      await sendEventEmail(updatedEvent, 'update');
+      try {
+        const { data: emailData, error: emailError } = await supabase.functions.invoke('send-email', {
+          body: { record: updatedEvent, action: 'update' }
+        });
+        
+        if (emailError) {
+          console.error('Edge function error:', emailError);
+          if (emailError.context && emailError.context.status === 404) {
+            alert('Die E-Mail-Funktion "send-email" wurde noch nicht in Supabase bereitgestellt (Deployed).');
+          } else {
+            alert(`Fehler beim Senden der E-Mail-Benachrichtigung: ${emailError.message || JSON.stringify(emailError)}`);
+          }
+        } else if (emailData && emailData.error) {
+          console.error('Email function returned error:', emailData.error);
+          alert(`Fehler beim Senden der E-Mail: ${emailData.error}`);
+        } else {
+          console.log('Email sent successfully:', emailData);
+        }
+      } catch (emailErr: any) {
+        console.error('Failed to send update email notification:', emailErr);
+        alert(`Fehler beim Aufruf der E-Mail-Funktion: ${emailErr.message}`);
+      }
 
       loadEvents();
     } catch (error) {
@@ -162,13 +206,12 @@ export default function Dashboard() {
   const confirmDelete = async () => {
     if (eventToDelete === null) return;
     try {
-      const eventData = events.find((event) => event.id === eventToDelete);
-
-      if (!eventData) {
-        throw new Error('Veranstaltung zum Löschen nicht gefunden.');
-      }
-
-      await deleteEventWithEmail(eventData);
+      const { error } = await supabase
+        .from('events')
+        .delete()
+        .eq('id', eventToDelete);
+        
+      if (error) throw error;
       loadEvents();
     } catch (error) {
       console.error('Failed to delete event', error);
@@ -178,6 +221,15 @@ export default function Dashboard() {
   };
 
   const openCreateModal = () => {
+    setEventToDuplicate(null);
+    setIsModalOpen(true);
+  };
+
+  const handleDuplicate = (event: Event) => {
+    setEventToDuplicate({
+      ...event,
+      title: `Kopie von ${event.title}`,
+    });
     setIsModalOpen(true);
   };
 
@@ -204,6 +256,7 @@ export default function Dashboard() {
               event={event} 
               onUpdate={handleUpdate} 
               onDelete={handleDelete} 
+              onDuplicate={handleDuplicate}
             />
           ))}
           {events.length === 0 && (
@@ -216,9 +269,13 @@ export default function Dashboard() {
 
       <EventModal
         isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        onClose={() => {
+          setIsModalOpen(false);
+          setEventToDuplicate(null);
+        }}
         onSubmit={handleCreate}
-        initialData={null}
+        initialData={eventToDuplicate}
+        isDuplicate={!!eventToDuplicate}
       />
 
       {/* Delete Confirmation Modal */}

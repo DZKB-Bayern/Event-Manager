@@ -1,5 +1,5 @@
 import React, { useState, useEffect, ChangeEvent, FormEvent } from 'react';
-import { Calendar, MapPin, Clock, Edit2, Trash2, Save, X, Upload, ChevronDown, ChevronUp } from 'lucide-react';
+import { Calendar, MapPin, Clock, Edit2, Trash2, Save, X, Upload, ChevronDown, ChevronUp, Copy } from 'lucide-react';
 import { format } from 'date-fns';
 import { de } from 'date-fns/locale';
 import { motion, AnimatePresence } from 'motion/react';
@@ -9,9 +9,10 @@ interface EventItemProps {
   event: Event;
   onUpdate: (event: Event, formData: FormData) => Promise<void>;
   onDelete: (id: number) => void;
+  onDuplicate?: (event: Event) => void;
 }
 
-const EventItem: React.FC<EventItemProps> = ({ event, onUpdate, onDelete }) => {
+const EventItem: React.FC<EventItemProps> = ({ event, onUpdate, onDelete, onDuplicate }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -287,6 +288,18 @@ const EventItem: React.FC<EventItemProps> = ({ event, onUpdate, onDelete }) => {
             </div>
           </div>
           <div className="flex items-center space-x-4">
+            {onDuplicate && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDuplicate(event);
+                }}
+                className="text-gray-500 hover:text-primary p-2 rounded-full hover:bg-gray-100"
+                title="Duplizieren"
+              >
+                <Copy className="h-5 w-5" />
+              </button>
+            )}
             <button
               onClick={(e) => {
                 e.stopPropagation();

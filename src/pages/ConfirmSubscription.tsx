@@ -28,6 +28,21 @@ export default function ConfirmSubscription() {
           return;
         }
 
+        // Check if the RPC failed because the user is ALREADY subscribed
+        // (The RPC returns false if the user is not found OR if they are not 'pending')
+        if (!rpcError && !success) {
+           const { data: checkProfile } = await supabase
+            .from('profiles')
+            .select('notification_status')
+            .eq('notification_token', token)
+            .single();
+            
+           if (checkProfile && checkProfile.notification_status === 'subscribed') {
+             setStatus('success');
+             return;
+           }
+        }
+
         console.log('RPC failed or returned false, trying direct fallback...', rpcError);
         
         // 2. Fallback: Try direct DB update (works if user is logged in on this browser)

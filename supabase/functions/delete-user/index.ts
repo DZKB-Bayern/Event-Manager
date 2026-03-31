@@ -7,29 +7,23 @@ const corsHeaders = {
 }
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
 
   try {
-    const authHeader = req.headers.get('Authorization')
-    if (!authHeader) {
-      throw new Error('Missing Authorization header')
-    }
-
-    // 1. Create client with user's auth context to verify admin status
+    // 1. Client erstellen, um den Aufrufer zu prüfen
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      { global: { headers: { Authorization: authHeader } } }
+      { global: { headers: { Authorization: req.headers.get('Authorization')! } } }
     )
 
-    // Check if caller is authenticated
+    // Prüfen, ob der Aufrufer eingeloggt ist
     const { data: { user }, error: userError } = await supabaseClient.auth.getUser()
     if (userError || !user) throw new Error('Unauthorized')
 
-    // Check if caller is admin
+    // Prüfen, ob der Aufrufer Admin ist
     const { data: profile } = await supabaseClient
       .from('profiles')
       .select('role')
@@ -40,27 +34,14 @@ serve(async (req) => {
       throw new Error('Forbidden: Only admins can delete users')
     }
 
-    // 2. Parse request body
-    let user_id;
-    try {
-      const body = await req.json()
-      user_id = body.user_id
-    } catch (e) {
-      throw new Error('Invalid request body')
-    }
-
+    // 2. User ID aus dem Request lesen
+    const { user_id } = await req.json()
     if (!user_id) throw new Error('User ID required')
 
-    // 3. Delete user using Service Role Key (Admin privileges)
-    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
-    if (!serviceRoleKey) {
-      console.error('Missing SUPABASE_SERVICE_ROLE_KEY')
-      throw new Error('Server configuration error')
-    }
-
+    // 3. Benutzer löschen (mit Service Role Key)
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      serviceRoleKey
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
     const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(user_id)
@@ -72,7 +53,6 @@ serve(async (req) => {
     })
 
   } catch (error) {
-    console.error('Error in delete-user function:', error)
     return new Response(JSON.stringify({ error: error.message }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 400,

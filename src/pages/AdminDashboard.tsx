@@ -7,7 +7,6 @@ import { de } from 'date-fns/locale';
 import UserModal from '../components/UserModal';
 import EventModal from '../components/EventModal';
 import { AdminEvent as Event, Profile } from '../types';
-import { deleteEventWithEmail, sendEventEmail } from '../lib/eventActions';
 
 export default function AdminDashboard() {
   const { isAdmin, loading: authLoading } = useAuth();
@@ -89,15 +88,13 @@ export default function AdminDashboard() {
 
   const confirmDeleteEvent = async () => {
     if (eventToDelete === null) return;
-
-    const eventToDeleteData = events.find((event) => event.id === eventToDelete);
-
     try {
-      if (!eventToDeleteData) {
-        throw new Error('Veranstaltung zum Löschen nicht gefunden.');
-      }
-
-      await deleteEventWithEmail(eventToDeleteData);
+      const { error } = await supabase
+        .from('events')
+        .delete()
+        .eq('id', eventToDelete);
+        
+      if (error) throw error;
       loadData();
     } catch (error) {
       console.error('Failed to delete event', error);
@@ -144,6 +141,7 @@ export default function AdminDashboard() {
         color: formData.get('color') as string,
         button_text: formData.get('button_text') as string,
         button_link: formData.get('button_link') as string,
+        category: formData.get('category') as string,
         image_url: image_url,
       };
 
@@ -156,7 +154,29 @@ export default function AdminDashboard() {
 
       if (error) throw error;
 
-      await sendEventEmail(updatedEvent, 'update');
+      // Trigger email notification for update
+      try {
+        const { data: emailData, error: emailError } = await supabase.functions.invoke('send-email', {
+          body: { record: updatedEvent, action: 'update' }
+        });
+        
+        if (emailError) {
+          console.error('Edge function error:', emailError);
+          if (emailError.context && emailError.context.status === 404) {
+            alert('Die E-Mail-Funktion "send-email" wurde noch nicht in Supabase bereitgestellt (Deployed).');
+          } else {
+            alert(`Fehler beim Senden der E-Mail-Benachrichtigung: ${emailError.message || JSON.stringify(emailError)}`);
+          }
+        } else if (emailData && emailData.error) {
+          console.error('Email function returned error:', emailData.error);
+          alert(`Fehler beim Senden der E-Mail: ${emailData.error}`);
+        } else {
+          console.log('Email sent successfully:', emailData);
+        }
+      } catch (emailErr: any) {
+        console.error('Failed to send update email notification:', emailErr);
+        alert(`Fehler beim Aufruf der E-Mail-Funktion: ${emailErr.message}`);
+      }
 
       setIsEventModalOpen(false);
       setEditingEvent(null);
