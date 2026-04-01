@@ -25,6 +25,7 @@ const EventItem: React.FC<EventItemProps> = ({ event, onUpdate, onDelete, onDupl
     color: event.color || '#0D89F9',
     button_text: event.button_text || 'JETZT ANMELDEN',
     button_link: event.button_link || '',
+    category: event.category || 'events',
   });
 
   // Date/Time state
@@ -85,6 +86,7 @@ const EventItem: React.FC<EventItemProps> = ({ event, onUpdate, onDelete, onDupl
       data.append('color', formData.color);
       data.append('button_text', formData.button_text);
       data.append('button_link', formData.button_link);
+      data.append('category', formData.category);
       
       if (imageFile) {
         data.append('image', imageFile);
@@ -109,6 +111,7 @@ const EventItem: React.FC<EventItemProps> = ({ event, onUpdate, onDelete, onDupl
       color: event.color || '#0D89F9',
       button_text: event.button_text || 'JETZT ANMELDEN',
       button_link: event.button_link || '',
+      category: event.category || 'events',
     });
     const s = new Date(event.start_time);
     const e = new Date(event.end_time);
@@ -141,6 +144,35 @@ const EventItem: React.FC<EventItemProps> = ({ event, onUpdate, onDelete, onDupl
                 required
               />
             </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Kategorie</label>
+              <div className="mt-2 flex gap-4">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name={`category-${event.id}`}
+                    value="events"
+                    checked={formData.category === 'events'}
+                    onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                    className="w-4 h-4 text-primary bg-gray-100 border-gray-300 focus:ring-primary"
+                  />
+                  <span className="text-sm font-medium text-gray-900">Events</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name={`category-${event.id}`}
+                    value="akademie"
+                    checked={formData.category === 'akademie'}
+                    onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                    className="w-4 h-4 text-primary bg-gray-100 border-gray-300 focus:ring-primary"
+                  />
+                  <span className="text-sm font-medium text-gray-900">Akademie</span>
+                </label>
+              </div>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700">Ort</label>
               <input
@@ -273,7 +305,12 @@ const EventItem: React.FC<EventItemProps> = ({ event, onUpdate, onDelete, onDupl
       <div className="px-4 py-4 sm:px-6 hover:bg-gray-50 transition duration-150 ease-in-out">
         <div className="flex items-center justify-between cursor-pointer" onClick={() => setIsExpanded(!isExpanded)}>
           <div className="flex-1 min-w-0">
-            <h3 className="text-lg font-medium text-primary truncate">{event.title}</h3>
+            <div className="flex items-center gap-3">
+              <h3 className="text-lg font-medium text-primary truncate">{event.title}</h3>
+              <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${event.category === 'akademie' ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'}`}>
+                {event.category === 'akademie' ? 'Akademie' : 'Event'}
+              </span>
+            </div>
             <div className="mt-2 flex items-center text-sm text-gray-500 sm:mt-0">
               <Calendar className="flex-shrink-0 mr-1.5 h-5 w-5 text-gray-400" />
               <p>
