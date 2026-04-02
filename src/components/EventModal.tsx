@@ -218,6 +218,17 @@ export default function EventModal({ isOpen, onClose, onSubmit, initialData, isD
                         />
                         <span className="text-sm font-medium text-gray-900">Akademie</span>
                       </label>
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="category"
+                          value="camping"
+                          checked={formData.category === 'camping'}
+                          onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                          className="w-4 h-4 text-primary bg-gray-100 border-gray-300 focus:ring-primary"
+                        />
+                        <span className="text-sm font-medium text-gray-900">Camping</span>
+                      </label>
                     </div>
                   </div>
                   <div>

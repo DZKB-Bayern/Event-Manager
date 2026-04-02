@@ -83,10 +83,10 @@ export default function Home() {
       <div className="flex flex-col md:flex-row justify-between items-end mb-12 gap-4">
         <div className="text-center md:text-left w-full md:w-auto">
           <h1 className="text-4xl font-light sm:text-5xl sm:tracking-tight lg:text-6xl" style={{ color: '#0C71C3' }}>
-            {categoryParam === 'akademie' ? 'Unsere Akademie' : categoryParam === 'events' ? 'Unsere Events' : 'Unsere Events & Akademie'}
+            {categoryParam === 'akademie' ? 'Unsere Akademie' : categoryParam === 'camping' ? 'Camping mit Hund' : categoryParam === 'events' ? 'Unsere Events' : 'Unsere Events, Akademie & Camping'}
           </h1>
           <p className="mt-5 max-w-xl text-xl mx-auto md:mx-0" style={{ color: '#0C71C3' }}>
-            {categoryParam === 'akademie' ? 'Zukünftige Akademie-Termine unserer Mitglieder.' : categoryParam === 'events' ? 'Zukünftige Veranstaltungen unserer Mitglieder.' : 'Zukünftige Veranstaltungen und Akademie-Termine unserer Mitglieder.'}
+            {categoryParam === 'akademie' ? 'Zukünftige Akademie-Termine unserer Mitglieder.' : categoryParam === 'camping' ? 'Zukünftige Termine für Camper mit Hund.' : categoryParam === 'events' ? 'Zukünftige Veranstaltungen unserer Mitglieder.' : 'Zukünftige Veranstaltungen, Akademie- und Camping-Termine unserer Mitglieder.'}
           </p>
         </div>
 

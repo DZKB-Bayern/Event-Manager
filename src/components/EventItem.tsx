@@ -169,6 +169,17 @@ const EventItem: React.FC<EventItemProps> = ({ event, onUpdate, onDelete, onDupl
                   />
                   <span className="text-sm font-medium text-gray-900">Akademie</span>
                 </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name={`category-${event.id}`}
+                    value="camping"
+                    checked={formData.category === 'camping'}
+                    onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                    className="w-4 h-4 text-primary bg-gray-100 border-gray-300 focus:ring-primary"
+                  />
+                  <span className="text-sm font-medium text-gray-900">Camping</span>
+                </label>
               </div>
             </div>
           </div>
@@ -307,8 +318,12 @@ const EventItem: React.FC<EventItemProps> = ({ event, onUpdate, onDelete, onDupl
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-3">
               <h3 className="text-lg font-medium text-primary truncate">{event.title}</h3>
-              <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${event.category === 'akademie' ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'}`}>
-                {event.category === 'akademie' ? 'Akademie' : 'Event'}
+              <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${
+                event.category === 'akademie' ? 'bg-purple-100 text-purple-800' : 
+                event.category === 'camping' ? 'bg-green-100 text-green-800' : 
+                'bg-blue-100 text-blue-800'
+              }`}>
+                {event.category === 'akademie' ? 'Akademie' : event.category === 'camping' ? 'Camping' : 'Event'}
               </span>
             </div>
             <div className="mt-2 flex items-center text-sm text-gray-500 sm:mt-0">
