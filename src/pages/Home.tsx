@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { de } from 'date-fns/locale';
 import { MapPin, Clock, LayoutGrid, List, Building2 } from 'lucide-react';
@@ -37,6 +37,7 @@ export default function Home() {
 
   // Check for embed parameter to adjust layout
   const location = useLocation();
+  const navigate = useNavigate();
   const searchParams = new URLSearchParams(location.search);
   const embedParam = searchParams.get('embed');
   const categoryParam = searchParams.get('category');
@@ -46,6 +47,16 @@ export default function Home() {
     embedParam === '' ||
     location.hash.includes('embed=true') ||
     location.hash.includes('embed=1');
+
+  const handleCategoryChange = (category: string | null) => {
+    const newSearchParams = new URLSearchParams(location.search);
+    if (category) {
+      newSearchParams.set('category', category);
+    } else {
+      newSearchParams.delete('category');
+    }
+    navigate(`${location.pathname}?${newSearchParams.toString()}`);
+  };
 
   useEffect(() => {
     const fetchEvents = async () => {
@@ -92,7 +103,7 @@ export default function Home() {
 
   return (
     <div className={`max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 ${isEmbed ? 'py-4' : 'py-12'}`}>
-      <div className="flex flex-col md:flex-row justify-between items-end mb-12 gap-4">
+      <div className="flex flex-col md:flex-row justify-between items-end mb-8 gap-4">
         <div className="text-center md:text-left w-full md:w-auto">
           <h1 className="text-4xl font-light sm:text-5xl sm:tracking-tight lg:text-6xl" style={{ color: '#0C71C3' }}>
             {categoryParam === 'akademie' ? 'Unsere Akademie' : categoryParam === 'camping' ? 'Camping mit Hund' : categoryParam === 'events' ? 'Unsere Events' : 'Unsere Events, Akademie & Camping'}
@@ -118,6 +129,33 @@ export default function Home() {
             <List className="w-5 h-5" />
           </button>
         </div>
+      </div>
+
+      <div className="flex flex-wrap justify-center md:justify-start gap-2 mb-8">
+        <button
+          onClick={() => handleCategoryChange(null)}
+          className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${!categoryParam ? 'bg-primary text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+        >
+          Alle
+        </button>
+        <button
+          onClick={() => handleCategoryChange('events')}
+          className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${categoryParam === 'events' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+        >
+          Events
+        </button>
+        <button
+          onClick={() => handleCategoryChange('akademie')}
+          className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${categoryParam === 'akademie' ? 'bg-purple-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+        >
+          Akademie
+        </button>
+        <button
+          onClick={() => handleCategoryChange('camping')}
+          className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${categoryParam === 'camping' ? 'bg-green-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+        >
+          Camping
+        </button>
       </div>
 
       <div className={viewMode === 'grid' ? "grid gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" : "space-y-6"}>
